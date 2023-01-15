@@ -112,6 +112,7 @@ class Stroke {
 			ev.type=='pointerup' && st.up?.(...st.context)
 			st.use_overlay && st.context[1].erase()
 			ev.type=='pointermove' && st.move?.(...st.context)
+			st.context[0].mirror_thumb()
 		}
 		target.onlostpointercapture = ev=>{
 			this.pointers.delete(ev.pointerId)
@@ -353,6 +354,8 @@ class ImageBrush {
 class Grp {
 	canvas = null
 	c2d = null
+	thumbcanvas = null
+	thumbc2d = null
 	brush = null
 	inverted = false
 	
@@ -362,12 +365,21 @@ class Grp {
 		const x = this.canvas = document.createElement('canvas')
 		x.width = width
 		x.height = height
+		const xt = this.thumbcanvas = document.createElement('canvas')
+		xt.width = width
+		xt.height = height
 		
 		const c = this.c2d = this.canvas.getContext('2d')
 		c.imageSmoothingEnabled = false
 		c.shadowOffsetX = 1000
 		c.shadowColor = "#000000"
 		this.c2d.translate(-1000, 0)
+		
+		const ct = this.thumbc2d = this.thumbcanvas.getContext('2d')
+		ct.imageSmoothingEnabled = false
+		ct.shadowOffsetX = 1000
+		ct.shadowColor = "#000000"
+		ct.translate(-1000, 0)
 	}
 	set color(v) {
 		this.c2d.shadowColor = v
@@ -389,7 +401,6 @@ class Grp {
 		this.inverted = v
 		this.pattern = this.c2d.fillStyle
 	}
-	// used for overlay
 	copy_settings(source) {
 		this.brush = source.brush
 		this.color = source.c2d.shadowColor
@@ -397,11 +408,23 @@ class Grp {
 		this.pattern = source.c2d.fillStyle
 		// note: dont copy composite
 	}
+	// used for new layers
+	copy_settings_layer(source) {
+		this.brush = source.brush
+		this.color = source.c2d.shadowColor
+		this.inverted = source.inverted //n
+		this.pattern = source.c2d.fillStyle
+		this.c2d.globalCompositeOperation = source.c2d.globalCompositeOperation
+	}
+	mirror_thumb() {
+		this.thumbc2d.putImageData(this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height), 0, 0)
+	}
 	get_data() {
 		return this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height)
 	}
 	put_data(data, x=0, y=0) { // hm this takes x,y... nnnn
 		this.c2d.putImageData(data, x, y)
+		this.thumbc2d.putImageData(data, x, y)
 	}
 	erase() {
 		this.c2d.save()

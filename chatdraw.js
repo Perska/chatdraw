@@ -150,6 +150,7 @@ class ChatDraw extends HTMLElement {
 	palsize = 6
 	
 	grp = new Grp(this.width, this.height)
+	layers = [this.grp]
 	overlay = new Grp(this.width, this.height)
 	img = new Image(this.width, this.height)
 	form = null
@@ -159,12 +160,15 @@ class ChatDraw extends HTMLElement {
 	tool = null
 	color = 0
 	clipboard = null
+	activelayer = 0
+	focus = false
 	
 	constructor() {
 		super()
 		Object.seal(this)
 		
 		this.grp.canvas.classList.add('main')
+		this.grp.thumbcanvas.classList.add('selected')
 		this.overlay.canvas.classList.add('overlay')
 		/// define brushes ///
 		const brushes = []
@@ -249,7 +253,8 @@ class ChatDraw extends HTMLElement {
 				'color', ['#000000','#ffffff','#ff0000','#2040ee','#00cc00','#ffff00'], //"#000000","#FFFFFF","#ca2424","#7575e8","#25aa25","#ebce30"
 				(v,i)=>{
 					this.color = i
-					this.grp.color = v
+					this.layers.map(layer => layer.color = v)
+					//this.grp.color = v
 					this.form.pick.value = v
 				},
 				(v,i)=>{
@@ -260,18 +265,21 @@ class ChatDraw extends HTMLElement {
 			),
 			brush: new Choices(
 				'brush', brushes,
-				v=>this.grp.brush = v,
+				v=>this.layers.map(layer => layer.brush = v),
+				//v=>this.grp.brush = v,
 				v=>v.label
 			),
 			pattern: new Choices(
 				'pattern', patterns,
-				v=>this.grp.pattern = v,
+				v=>this.layers.map(layer => layer.pattern = v),
+				//v=>this.grp.pattern = v,
 				v=>v._label
 			),
 			composite: new Choices(
 				'composite', ['source-over', 'destination-over', 'source-atop', 'destination-out', 'xor'],
 				// messy, we need to have a nicer way to like, keep track of the labels idk.. associate with values etc,
-				v=>this.grp.composite = v,
+				v=>this.layers.map(layer => layer.composite = v),
+				//v=>this.grp.composite = v,
 				v=>({
 					'source-over':["over"],
 					'destination-over':["under"],
@@ -284,7 +292,8 @@ class ChatDraw extends HTMLElement {
 			),
 			invert: new Choices(
 				'invert', [false, true],
-				v=>this.grp.invert = v,
+				v=>this.layers.map(layer => layer.invert = v),
+				//v=>this.grp.invert = v,
 				v=>v?['invert']:['no']
 			),
 		}
@@ -293,12 +302,32 @@ class ChatDraw extends HTMLElement {
 			let sel = this.sel_color()
 			const old = this.choices.color.values[sel]
 			this.history.add()
-			this.grp.replace_color(old, picked)
+			this.layers.map(layer => layer.replace_color(old, picked))
+			this.grp.mirror_thumb()
+			//this.grp.replace_color(old, picked)
 			this.set_palette(sel, picked)
 		}
 		// safari hack
 		let picked = null
 		const safari = navigator.vendor=="Apple Computer, Inc."
+		
+		const layerchange = (d)=>{
+			layerset((this.activelayer + (d || 1) + this.layers.length) % this.layers.length)
+		}
+		const layerset = (d)=>{
+			this.activelayer = d
+			this.grp = this.layers[this.activelayer]
+			this.grp.thumbcanvas.scrollIntoView({block: 'center'})
+			chatdraw.form.children[2].firstChild.textContent = `Layers: ${this.activelayer+1}/${this.layers.length}`
+			//chatdraw.form.layer.nextElementSibling.textContent = `${this.activelayer+1}/${this.layers.length}`
+			this.layers.forEach((layer, index) => {
+				if (this.focus) {
+					layer.canvas.classList.toggle("main", this.activelayer == index)
+					layer.canvas.classList.toggle("hide", this.activelayer != index)
+				}
+				layer.thumbcanvas.classList.toggle("selected", this.activelayer == index)
+			})
+		}
 		
 		/// define button actions ///
 		// this is kinda messy why do we have to define these in 2 places..
@@ -316,10 +345,12 @@ class ChatDraw extends HTMLElement {
 			reset: ()=>{
 				this.history.add()
 				this.grp.erase()
+				this.grp.mirror_thumb()
 			},
 			fill: ()=>{
 				this.history.add()
 				this.grp.clear()
+				this.grp.mirror_thumb()
 			},
 			bg: ()=>{
 				// color here should this.c2d.shadowColor but just in case..
@@ -328,13 +359,36 @@ class ChatDraw extends HTMLElement {
 					const color = this.choices.color.values[sel]
 					this.history.add()
 					this.grp.replace_color(color)
+					this.grp.mirror_thumb()
 				}
 			},
 			undo: ()=>this.history.do(false),
 			redo: ()=>this.history.do(true),
 			save: ()=>{
 				const url = this.grp.export()
-				download(url, `chatdraw-${url.match(/[/](\w{5})/)[1]}.png`)
+				console.log(url)
+				download(url, `chatdraw-${url.match(/[/](\w{5})/)?.[1]}.png`)
+			},
+			saveall: ()=>{
+				let temp = new Grp(this.width, this.height)
+				temp.c2d.globalCompositeOperation = 'source-over'
+				//temp.c2d.fillStyle = '#FFFFFF'
+				temp.c2d.resetTransform()
+				this.layers.forEach(layer => {
+					temp.c2d.drawImage(layer.canvas, 0, 0)
+				})
+				const url = temp.export()
+				download(url, `chatdraw-${url.match(/[/](\w{5})/)?.[1]}.png`)
+			},
+			savelayers: ()=>{
+				let temp = new Grp(this.width, this.height * this.layers.length)
+				temp.c2d.globalCompositeOperation = 'source-over'
+				temp.c2d.resetTransform()
+				this.layers.forEach((layer, i) => {
+					temp.c2d.drawImage(layer.canvas, 0, this.height * i)
+				})
+				const url = temp.export()
+				download(url, `chatdraw-${url.match(/[/](\w{5})/)?.[1]}.png`)
 			},
 			load: async (v,e)=>{
 				let file = e.files[0]
@@ -347,10 +401,103 @@ class ChatDraw extends HTMLElement {
 					await img.decode()
 					this.history.add()
 					this.import(img)
+					this.grp.mirror_thumb()
 				} finally {
 					URL.revokeObjectURL(url)
 				}
 			},
+			loadlayers: async (v,e)=>{
+				let file = e.files[0]
+				if (!file)
+					return
+				let url = URL.createObjectURL(file)
+				try {
+					let img = new Image()
+					img.src = url
+					await img.decode()
+					this.history.add()
+					this.layers = []
+					let layers = img.height / this.height
+					while (this.layers.length<layers) {
+						this.layers.push(new Grp(this.width, this.height))
+					}
+					for (let i=0;i<layers;i++) {
+						this.layers[i].c2d.drawImage(img, 0, this.height*i, this.width, this.height, 1000, 0, this.width, this.height)
+						this.layers[i].replace_color('#e4d8a9', null)
+						this.layers[i].mirror_thumb()	
+					}
+					this.layers.map(layer => layer.copy_settings_layer(this.grp))
+					this.set_palette2(this.all_palette(this.palsize))
+					reloadlayers()
+					layerset(0)
+				} finally {
+					URL.revokeObjectURL(url)
+				}
+			},
+			add: ()=>{
+				this.history.add()
+				let lay = new Grp(this.width, this.height)
+				lay.copy_settings_layer(this.grp)
+				this.layers = [...this.layers, lay]
+				reloadlayers()
+				layerset(this.layers.length-1)
+			},
+			remove: ()=>{
+				if (this.layers.length == 1) return
+				this.history.add()
+				this.layers = this.layers.filter(layer => layer != this.grp)
+				reloadlayers()
+				layerset(Math.min(this.activelayer,this.layers.length-1))
+			},
+			clone: ()=>{
+				this.history.add()
+				let lay = new Grp(this.width, this.height)
+				lay.copy_settings_layer(this.grp)
+				lay.put_data(this.grp.get_data())
+				this.layers = [...this.layers, lay]
+				reloadlayers()
+				layerset(this.layers.length-1)
+			},
+			focus: ()=>{
+				this.focus = !this.focus
+				if (this.focus) {
+					chatdraw.form.focus.checked = true
+					this.layers.forEach((layer, index) => {
+						layer.canvas.classList.toggle("main", this.activelayer == index)
+						layer.canvas.classList.toggle("hide", this.activelayer != index)
+					})
+				} else {
+					chatdraw.form.focus.checked = false
+					this.layers.forEach((layer, index) => {
+						layer.canvas.classList.toggle("main", index == 0)
+						layer.canvas.classList.toggle("hide", false)
+					})
+				}
+			},
+			shiftup: ()=>{
+				if ((this.activelayer) == 0) return
+				this.history.add()
+				let swapper = this.layers[this.activelayer].get_data()
+				let swappee = this.layers[this.activelayer - 1].get_data()
+				this.layers[this.activelayer].put_data(swappee)
+				this.layers[this.activelayer - 1].put_data(swapper)
+				layerchange(-1)
+			},
+			shift: ()=>{
+				if ((this.activelayer + 1) == this.layers.length) return
+				this.history.add()
+				let swapper = this.layers[this.activelayer].get_data()
+				let swappee = this.layers[this.activelayer + 1].get_data()
+				this.layers[this.activelayer].put_data(swappee)
+				this.layers[this.activelayer + 1].put_data(swapper)
+				layerchange(1)
+			},
+			selectup: ()=>{
+				layerchange(-1)
+			},
+			select: ()=>{
+				layerchange(1)
+			}
 		}
 		
 		// todo: put this.img somewhere?
@@ -360,12 +507,25 @@ class ChatDraw extends HTMLElement {
 		
 		/// draw form ///
 		this.form = draw_form(this.choices, actions, [
-			{title:"Action", cols: 1, items:[
+			{title:"Action", cols: 2, items:[
 				{name:'undo', label:["↶","undo",true]},
 				{name:'redo', label:["↷","redo",true]},
 				{name:'reset', label:["reset","reset"]},
-				{name:'save', label:["save", "save"]},
-				{name:'load', type:'file', label:["load"]},
+				{name:'saveall', label:["export", "save all layers as one"]},
+				{name:'savelayers', label:["save", "save all layers"]},
+				{name:'loadlayers', type:'file', label:["load", "load all layers"]},
+				{name:'save', label:["save\nlayer", "save this layer"]},
+				{name:'load', type:'file', label:["load\nlayer", "load on this layer"]},
+			]},
+			{title:`Layers: ${this.activelayer+1}/${this.layers.length}`, cols: 2, items:[
+				{name:'add', label:["+", "add layer", true]},
+				{name:'selectup', label:["▲", "select previous layer"]},
+				{name:'remove', label:["–", "remove layer", true]},
+				{name:'select', label:["▼", "select next layer"]},
+				{name:'shiftup', label:["shift↑", "shift layer up"]},
+				{name:'clone', label:["clone", "clone the current layer"]},
+				{name:'shift', label:["shift↓", "shift layer down"]},
+				{name:'focus', label:["focus", "focus on current layer"]},
 			]},
 			{title:"Tool", cols: 2, items:[
 				...this.choices.tool.buttons,
@@ -382,6 +542,8 @@ class ChatDraw extends HTMLElement {
 			{title:"Pattern", small:true, items:this.choices.pattern.buttons},
 		])
 		
+		this.form.focus.type = "checkbox"
+		
 		if (safari)
 			this.form.pick.onblur = this.form.pick.onfocus = ev=>{
 				if (picked)
@@ -393,12 +555,23 @@ class ChatDraw extends HTMLElement {
 		this.history = new Undo(
 			50,
 			()=>({
-				data: this.grp.get_data(),
+				data: this.layers.map(layer => layer.get_data()),
+				//data: this.grp.get_data(),
 				palette: this.choices.color.values.slice(0, this.palsize),
+				layers: this.layers, 
+				selected: this.activelayer
 			}),
 			(data)=>{
-				this.grp.put_data(data.data)
+				if (this.layers != data.layers) {
+					//this.layers.filter(layer => !data.layers.includes(layer)).forEach(layer => )
+					this.layers = [...data.layers]
+					reloadlayers()
+				}
+				data.data.forEach((layer, index) => this.layers[index].put_data(layer))
+				//this.layers.put_data(data.data)
+				//this.grp.put_data(data.data)
 				this.set_palette2(data.palette)
+				layerset(data.selected)
 			},
 			(can_undo, can_redo)=>{
 				this.form.undo.disabled = !can_undo
@@ -407,14 +580,34 @@ class ChatDraw extends HTMLElement {
 		)
 		/// final preparations ///
 		this.set_palette2(this.choices.color.values)
-		this.grp.erase()
+		this.layers.map(layer => layer.erase())
+		//this.grp.erase()
 		
 		let c = document.createElement('div')
 		c.style.setProperty('--width', this.width)
 		c.style.setProperty('--height', this.height)
 		c.style.textAlign = "center"
-		c.append(this.grp.canvas, this.overlay.canvas)
+		c.className = 'canvas'
+		c.append(...this.layers.map(layer => layer.canvas), this.overlay.canvas)
 		c.style.cursor = make_cursor(3)
+		let cc = document.createElement('div')
+		cc.style.setProperty('--width', this.width/4)
+		cc.style.setProperty('--height', this.height/4)
+		cc.style.textAlign = "center"
+		cc.className = 'thumbs'
+		cc.append(...this.layers.map(layer => layer.thumbcanvas))
+		
+		const reloadlayers = () => {
+			c.textContent = ""
+			cc.textContent = ""
+			c.append(...this.layers.map(layer => layer.canvas), this.overlay.canvas)
+			cc.append(...this.layers.map(layer => layer.thumbcanvas))
+		}
+		
+		cc.addEventListener("click", (e) => {
+			if (e.target.nodeName != "CANVAS") return
+			layerset(this.layers.findIndex(layer => layer.thumbcanvas == e.target))
+		})
 		
 		Stroke.handle(c, ev=>{
 			if (ev.button)
@@ -423,9 +616,13 @@ class ChatDraw extends HTMLElement {
 			this.tool.PointerDown(ev, this.grp.canvas, this.grp, this.overlay, this)
 		})
 		
+		//c.addEventListener("pointerup", () => {
+		//	console.log("boo!")
+		//})
+		
 		super.attachShadow({mode: 'open'}).append(
 			...ChatDraw.styles.map(x=>document.importNode(x, true)),
-			c, this.form
+			c, cc, this.form
 		)
 		
 		this.choose('tool', 0)
@@ -495,7 +692,22 @@ class ChatDraw extends HTMLElement {
 	import(img) {
 		this.grp.c2d.drawImage(img, 1000, 0, this.width, this.height)
 		this.grp.replace_color('#e4d8a9', null)
-		this.set_palette2(this.grp.get_palette(this.palsize))
+		//this.set_palette2(this.grp.get_palette(this.palsize))
+		this.set_palette2(this.all_palette(this.palsize))
+	}
+	
+	all_palette(lim) {
+		let colors = new Set()
+		for (let l=0;l<this.layers.length;l++) {
+			const d = this.layers[l].get_data().data
+			for (let i=0; i<d.length; i+=4)
+				if (d[i+3]) {
+					colors.add(d[i]<<16|d[i+1]<<8|d[i+2])
+					if (colors.size >= lim)
+						break
+				}
+		}
+		return [...colors].map(x=>"#"+x.toString(16).padStart(6,"0"))
 	}
 }
 ChatDraw.styles = ['style.css'].map(href=>Object.assign(document.createElement('link'), {rel:'stylesheet', href}))
