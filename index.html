@@ -1,5 +1,5 @@
 <!doctype html><html lang=en-QS><meta charset=utf-8><meta name=viewport content="width=device-width, height=device-height, initial-scale=1" id=$meta_viewport>
-<title>CHATDRAW 2!!!</title>
+<title>CHATDRAW 2 S. Adj</title>
 <link rel=icon sizes=16x16 href=favicon.gif>
 <style>
 	html, body {
@@ -21,6 +21,9 @@
 	chat-draw {
 		align-self: flex-start;
 	}
+	chat-draw {
+		align-self: center;
+	}
 </style>
 
 
@@ -32,7 +35,7 @@
 <script src=chatdraw.js></script>
 
 <form method=dialog>
-	<label>Scale: <input name=scale type=number min=1 max=10 value=2 id=$scale size=3 onchange="chatdraw.set_scale(value/devicePixelRatio)"></label>
+	<label>Scale: <input name=scale type=number min=1 max=10 value=4 id=$scale size=3 onchange="chatdraw.set_scale(value/devicePixelRatio)"></label>
 	<label style=color:goldenrod>Last stroke: <i id=$stroke></i></label>
 </form>
 <hr>

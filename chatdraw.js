@@ -34,13 +34,20 @@ function make_pattern(str, name, context) {
 	const data = c2d.createImageData(w, h)
 	for (let y=0; y<h; y++)
 		for (let x=0; x<w; x++)
-			if (rows[y][x]=="#")
+			if (rows[y][x]!="#")
 				data.data[x+y*w<<2|3] = 0xFF
 	c2d.putImageData(data, 0, 0)
-	const pattern = context.createPattern(canvas, 'repeat')
-	c2d.globalCompositeOperation = 'destination-over'
-	c2d.fillStyle = '#f0e0aa'
+	const invert = context.createPattern(canvas, 'repeat')
+	
+	c2d.globalCompositeOperation = 'xor'
 	c2d.fillRect(0, 0, w, h)
+	const pattern = context.createPattern(canvas, 'repeat')
+	pattern._invert = invert
+	pattern._invert._normal = pattern
+	
+	//c2d.globalCompositeOperation = 'destination-over'
+	//c2d.fillStyle = '#f0e0aa'
+	//c2d.fillRect(0, 0, w, h)
 	// hack: we want a larger canvas to use as a button label
 	/*canvas.width = 7
 	canvas.height = 5
@@ -133,9 +140,13 @@ class Choices {
 	}
 }
 
+const QUERY = window.location.search.match(/(\d+)x(\d+)/) || [null, "200", "100"]
+const WW = Number(QUERY[1])
+const WH = Number(QUERY[2])
+
 class ChatDraw extends HTMLElement {
-	width = 200
-	height = 100
+	width = WW || 200
+	height = WH || 100
 	palsize = 6
 	
 	grp = new Grp(this.width, this.height)
@@ -163,6 +174,7 @@ class ChatDraw extends HTMLElement {
 			brushes.push(Brush.Circle(i, true, [`●${i}`, `round ${i}×${i}`]))
 		for (let i=1; i<=3; i++)
 			brushes.push(Brush.Square(i, false, [`${i}▛`, `square ${i}×${i} thick`]))
+		brushes.push(new Brush(new Point(2.5,0.5), [[0, 0, 5, 1]], 5, false, ["—5", "a"]))
 		brushes.push(new Brush(new Point(2.5,2.5), [
 			[0,0,1,1],// wonder if we should store these as like, DOMRect?
 			[1,1,1,1],
@@ -170,6 +182,8 @@ class ChatDraw extends HTMLElement {
 			[3,3,1,1],
 			[4,4,1,1],
 		], 5, false, ["╲5", "a"]))
+		
+		// ╱
 		// we can't enable diagonal on this brush, since
 		// it's too thin. but technically, diagonal should work on some axes. would be nice to like, say, ok you're allowed to move in these directions:
 		// [][]  
@@ -178,6 +192,13 @@ class ChatDraw extends HTMLElement {
 		// this would not be too hard to implement, either. we just pick the 2 points that straddle the line being drawn
 		// (we could even do like, a dashed line? by allowing only movements of 2px at a time?)
 		brushes.push(new Brush(new Point(0.5,2.5), [[0, 0, 1, 5]], 5, false, ["| 5", "a"]))
+		brushes.push(new Brush(new Point(2.5,2.5), [
+			[4,0,1,1],// wonder if we should store these as like, DOMRect?
+			[3,1,1,1],
+			[2,2,1,1],
+			[1,3,1,1],
+			[0,4,1,1],
+		], 5, false, ["╱5", "a"]))
 		brushes.push(new ImageBrush(new Point(0,0), null, false, false, ["📋", "clipboard"]))
 		brushes.push(new ImageBrush(new Point(0,0), null, true, false, ["📋", "clipboard (colorized)"]))
 		/// define patterns ///
@@ -260,6 +281,11 @@ class ChatDraw extends HTMLElement {
 					'xor':["xor"],
 					'copy':["copy"], // this is only useful when pasting
 				}[v])
+			),
+			invert: new Choices(
+				'invert', [false, true],
+				v=>this.grp.invert = v,
+				v=>v?['invert']:['no']
 			),
 		}
 		
@@ -352,6 +378,7 @@ class ChatDraw extends HTMLElement {
 				{name:'pick', type:'color', label:["edit","edit color"]},
 				{name:'bg', label:["➙bg","replace color with background"]},
 			]},
+			{title:"Invert", cols:1, items:this.choices.invert.buttons},
 			{title:"Pattern", small:true, items:this.choices.pattern.buttons},
 		])
 		
@@ -385,6 +412,7 @@ class ChatDraw extends HTMLElement {
 		let c = document.createElement('div')
 		c.style.setProperty('--width', this.width)
 		c.style.setProperty('--height', this.height)
+		c.style.textAlign = "center"
 		c.append(this.grp.canvas, this.overlay.canvas)
 		c.style.cursor = make_cursor(3)
 		
@@ -405,6 +433,7 @@ class ChatDraw extends HTMLElement {
 		this.choose('composite', 0)
 		this.choose('color', 0)
 		this.choose('pattern', 0)
+		this.choose('invert', 0)
 	}
 	// idea: what if all tools just draw to the overlay, then we copy to main canvas at the end of the stroke? and update undo buffer..
 	// ugh but that would be slow maybe?

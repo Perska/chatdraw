@@ -354,6 +354,7 @@ class Grp {
 	canvas = null
 	c2d = null
 	brush = null
+	inverted = false
 	
 	constructor(width, height) {
 		Object.seal(this)
@@ -372,15 +373,27 @@ class Grp {
 		this.c2d.shadowColor = v
 	}
 	set pattern(v) {
+		if (this.inverted) {
+			if (v._invert)
+				v = v._invert
+		} else {
+			if (v._normal)
+				v = v._normal
+		}
 		this.c2d.fillStyle = v
 	}
 	set composite(v) {
 		this.c2d.globalCompositeOperation = v
 	}
+	set invert(v) {
+		this.inverted = v
+		this.pattern = this.c2d.fillStyle
+	}
 	// used for overlay
 	copy_settings(source) {
 		this.brush = source.brush
 		this.color = source.c2d.shadowColor
+		this.inverted = source.inverted //n
 		this.pattern = source.c2d.fillStyle
 		// note: dont copy composite
 	}
@@ -459,6 +472,7 @@ class Grp {
 				return true
 			}
 		}
+		if (x < 0 || y < 0 || x >= width || y >= height) return
 		
 		const queue = [[x, x, y, true]]
 		while (queue.length) {
