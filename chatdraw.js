@@ -140,14 +140,15 @@ class Choices {
 	}
 }
 
-const QUERY = window.location.search.match(/(\d+)x(\d+)/) || [null, "200", "100"]
+const QUERY = window.location.search.match(/(\d+)x(\d+)(!)?/) || [null, "200", "100", false]
 const WW = Number(QUERY[1])
 const WH = Number(QUERY[2])
+const MULTI = QUERY[3] == "!";
 
 class ChatDraw extends HTMLElement {
 	width = WW || 200
 	height = WH || 100
-	palsize = 6
+	palsize = MULTI ? 8 : 6
 	
 	grp = new Grp(this.width, this.height)
 	layers = [this.grp]
@@ -250,7 +251,7 @@ class ChatDraw extends HTMLElement {
 				v=>v.label
 			),
 			color: new Choices(
-				'color', ['#000000','#ffffff','#ff0000','#2040ee','#00cc00','#ffff00'], //"#000000","#FFFFFF","#ca2424","#7575e8","#25aa25","#ebce30"
+				'color', ['#000000','#ffffff','#ff0000','#2040ee','#00cc00','#ffff00',"#ff00ff","#00ffff"].slice(0, this.palsize), //"#000000","#FFFFFF","#ca2424","#7575e8","#25aa25","#ebce30"
 				(v,i)=>{
 					this.color = i
 					this.layers.map(layer => layer.color = v)

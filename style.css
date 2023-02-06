@@ -143,7 +143,7 @@ chatdraw-button > input {
 /* button states */
 button {
 	text-align: center;
-	letter-spacing: -1px;
+	letter-spacing: calc(0.25px * (0 - var(--S)));
 	font-size: 1em;
 	text-transform: uppercase;
 	display: flex;
