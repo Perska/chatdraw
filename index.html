@@ -13,6 +13,8 @@
 	}
 	pre {
 		white-space: pre-wrap;
+		display: inline-block;
+		margin: 0;
 	}
 	body {
 		display: flex;
@@ -23,6 +25,9 @@
 	}
 	chat-draw {
 		align-self: center;
+	}
+	textarea {
+		height: 1em;
 	}
 </style>
 
@@ -36,11 +41,13 @@
 
 <form method=dialog>
 	<label>Scale: <input name=scale type=number min=1 max=10 value=4 id=$scale size=3 onchange="chatdraw.set_scale(value/devicePixelRatio)"></label>
+	<label>testing:<textarea id=$code></textarea></label>
+	<input type="button" onclick="$log.textContent='...';$log.textContent=String(eval($code.value))" value="run">
+	<pre id=$log></pre>
 	<label style=color:goldenrod>Last stroke: <i id=$stroke></i></label>
 </form>
 <hr>
 <chat-draw></chat-draw>
-<hr>
 
 
 <script>
@@ -54,10 +61,3 @@
 	let chatdraw = document.querySelector('chat-draw')
 	$scale.onchange()
 </script>
-
-<div>
-	testing:
-	<textarea id=$code></textarea>
-	<button onclick="$log.textContent='...';$log.textContent=String(eval($code.value))">run</button>
-	<pre id=$log></pre>
-</div>

@@ -109,10 +109,9 @@ class Stroke {
 			if (!st) return
 			st.update(ev)
 			/// TODO: are we /sure/ that pointerup will be the last event?
-			ev.type=='pointerup' && st.up?.(...st.context)
+			ev.type=='pointerup' && (st.up?.(...st.context), st.context[0].mirror_thumb())
 			st.use_overlay && st.context[1].erase()
 			ev.type=='pointermove' && st.move?.(...st.context)
-			st.context[0].mirror_thumb()
 		}
 		target.onlostpointercapture = ev=>{
 			this.pointers.delete(ev.pointerId)
@@ -226,10 +225,10 @@ const tools = {
 			let {x, y} = ofs
 			x = (x+width*100) % width
 			y = (y+height*100) % height
-			d.put_data(this._data, x, y)
-			d.put_data(this._data, x-width, y)
-			d.put_data(this._data, x, y-height)
-			d.put_data(this._data, x-width, y-height)
+			d.put_data(this._data, x, y, false)
+			d.put_data(this._data, x-width, y, false)
+			d.put_data(this._data, x, y-height, false)
+			d.put_data(this._data, x-width, y-height, false)
 		}
 		up(d) {
 			this._data = null
@@ -422,9 +421,9 @@ class Grp {
 	get_data() {
 		return this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height)
 	}
-	put_data(data, x=0, y=0) { // hm this takes x,y... nnnn
+	put_data(data, x=0, y=0, mirror=true) { // hm this takes x,y... nnnn
 		this.c2d.putImageData(data, x, y)
-		this.thumbc2d.putImageData(data, x, y)
+		if (mirror) this.thumbc2d.putImageData(data, x, y)
 	}
 	erase() {
 		this.c2d.save()

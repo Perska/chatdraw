@@ -210,7 +210,8 @@ button > div {
 	display: block;
 	background: currentColor;
 	width: calc(var(--S)*14px);
-	height: calc(var(--S)*11px);
+	/*height: calc(var(--S)*11px);*/
+	height: 80%;
 	border-radius: calc(var(--S)*6px);
 }
 /* pattern button */

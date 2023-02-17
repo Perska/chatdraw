@@ -140,15 +140,15 @@ class Choices {
 	}
 }
 
-const QUERY = window.location.search.match(/(\d+)x(\d+)(!)?/) || [null, "200", "100", false]
+const QUERY = window.location.search.match(/(\d+)x(\d+)(?:c(\d+))?/) || [null, "200", "100", false]
 const WW = Number(QUERY[1])
 const WH = Number(QUERY[2])
-const MULTI = QUERY[3] == "!";
+const MULTI = Number(QUERY[3]) || 6
 
 class ChatDraw extends HTMLElement {
 	width = WW || 200
 	height = WH || 100
-	palsize = MULTI ? 8 : 6
+	palsize = Math.max(2,Math.min(MULTI,16))
 	
 	grp = new Grp(this.width, this.height)
 	layers = [this.grp]
@@ -251,7 +251,10 @@ class ChatDraw extends HTMLElement {
 				v=>v.label
 			),
 			color: new Choices(
-				'color', ['#000000','#ffffff','#ff0000','#2040ee','#00cc00','#ffff00',"#ff00ff","#00ffff"].slice(0, this.palsize), //"#000000","#FFFFFF","#ca2424","#7575e8","#25aa25","#ebce30"
+				'color', [
+					'#000000','#ffffff','#ff0000','#2040ee','#00cc00','#ffff00','#ee22ee','#00ffff',
+					'#555555','#aaaaaa','#aa0000','#8800ff','#ee9900','#aa5544','#aaffbb','#eebbff'
+				].slice(0, this.palsize), //"#000000","#FFFFFF","#ca2424","#7575e8","#25aa25","#ebce30"
 				(v,i)=>{
 					this.color = i
 					this.layers.map(layer => layer.color = v)
@@ -318,7 +321,8 @@ class ChatDraw extends HTMLElement {
 		const layerset = (d)=>{
 			this.activelayer = d
 			this.grp = this.layers[this.activelayer]
-			this.grp.thumbcanvas.scrollIntoView({block: 'center'})
+			//this.grp.thumbcanvas.scrollIntoView({block: 'nearest', inline: 'nearest'})
+			cc.scrollTop = Math.max(0,this.grp.thumbcanvas.offsetTop + this.grp.thumbcanvas.offsetHeight / 2 - cc.clientHeight / 2)
 			chatdraw.form.children[2].firstChild.textContent = `Layers: ${this.activelayer+1}/${this.layers.length}`
 			//chatdraw.form.layer.nextElementSibling.textContent = `${this.activelayer+1}/${this.layers.length}`
 			this.layers.forEach((layer, index) => {
@@ -534,7 +538,7 @@ class ChatDraw extends HTMLElement {
 			]},
 			{title:"Shape", small:true, items:this.choices.brush.buttons},
 			{title:"Composite", cols: 1, items:this.choices.composite.buttons},
-			{title:"Color", cols:2, items:[
+			{title:"Color", cols:((this.palsize < 12) ? 2 : 3), items:[
 				...this.choices.color.buttons,
 				{name:'pick', type:'color', label:["edit","edit color"]},
 				{name:'bg', label:["➙bg","replace color with background"]},
