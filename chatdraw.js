@@ -164,6 +164,9 @@ class ChatDraw extends HTMLElement {
 	activelayer = 0
 	focus = false
 	
+	flip = false
+	flop = false
+	
 	constructor() {
 		super()
 		Object.seal(this)
@@ -245,7 +248,7 @@ class ChatDraw extends HTMLElement {
 			tool: new Choices(
 				'tool', [
 					tools.Pen, tools.Slow, tools.Line, tools.Spray,
-					tools.Flood, tools.Place, tools.Move, tools.Copy,
+					tools.Flood, tools.Place, tools.Move, tools.Copy, tools.SuperMove
 				],
 				v=>this.tool = v,
 				v=>v.label
@@ -502,6 +505,24 @@ class ChatDraw extends HTMLElement {
 			},
 			select: ()=>{
 				layerchange(1)
+			},
+			horflip: ()=>{
+				this.history.add()
+				this.grp.flip()
+				this.grp.mirror_thumb()
+			},
+			verflip: ()=>{
+				this.history.add()
+				this.grp.flop()
+				this.grp.mirror_thumb()
+			},
+			hormirror: ()=>{
+				this.flip = !this.flip
+				c.classList.toggle("flip", this.flip)
+			},
+			vermirror: ()=>{
+				this.flop = !this.flop
+				c.classList.toggle("flop", this.flop)
 			}
 		}
 		
@@ -521,6 +542,8 @@ class ChatDraw extends HTMLElement {
 				{name:'loadlayers', type:'file', label:["load", "load all layers"]},
 				{name:'save', label:["save\nlayer", "save this layer"]},
 				{name:'load', type:'file', label:["load\nlayer", "load on this layer"]},
+				{name:'hormirror', label:["view⇔","mirror the image horizontally"]},
+				{name:'vermirror', label:["view⇕","mirror the image vertically"]},
 			]},
 			{title:`Layers: ${this.activelayer+1}/${this.layers.length}`, cols: 2, items:[
 				{name:'add', label:["+", "add layer", true]},
@@ -531,6 +554,8 @@ class ChatDraw extends HTMLElement {
 				{name:'clone', label:["clone", "clone the current layer"]},
 				{name:'shift', label:["shift↓", "shift layer down"]},
 				{name:'focus', label:["focus", "focus on current layer"]},
+				{name:'horflip', label:["flip⇔","flip the layer horizontally",false]},
+				{name:'verflip', label:["flip⇕","flip the layer vertically",false]},
 			]},
 			{title:"Tool", cols: 2, items:[
 				...this.choices.tool.buttons,
@@ -547,6 +572,8 @@ class ChatDraw extends HTMLElement {
 			{title:"Pattern", small:true, items:this.choices.pattern.buttons},
 		])
 		
+		this.form.hormirror.type = "checkbox"
+		this.form.vermirror.type = "checkbox"
 		this.form.focus.type = "checkbox"
 		
 		if (safari)

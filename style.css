@@ -20,6 +20,15 @@
 	height: calc(var(--height)*var(--S)*1px);
 	border-color: #b844;
 }
+:host > .canvas.flip {
+	transform: scaleX(-1);
+}
+:host > .canvas.flop {
+	transform: scaleY(-1);
+}
+:host > .canvas.flip.flop {
+	transform: scale(-1,-1);
+}
 :host > .canvas > * {
 	pointer-events: none;
 }

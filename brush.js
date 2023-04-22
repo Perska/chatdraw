@@ -123,9 +123,9 @@ class Stroke {
 		ev.preventDefault()
 		this.pos = null
 		this.canvas = canvas
+		this.context = context
 		this.update(ev)
 		this.start = this.pos
-		this.context = context
 		this.use_overlay = false
 	}
 	update({clientX, clientY}) {
@@ -135,6 +135,11 @@ class Stroke {
 		const ps = 1/window.devicePixelRatio/2
 		const adjust = new Point(ps, ps).Divide(scale)
 		this.pos = new Point(clientX, clientY).Subtract(rect).Add(adjust).Divide(scale)
+		let x = this.pos.x
+		let y = this.pos.y
+		if (this.context[2].flip) x = this.canvas.width - this.pos.x
+		if (this.context[2].flop) y = this.canvas.height - this.pos.y
+		this.pos = new Point(x, y)
 	}
 	// TODO: we need to "lock" the overlay, because 2 strokes can be drawn at the same time with a touchscreen
 	// or somehow support this properly?
@@ -233,7 +238,32 @@ const tools = {
 		up(d) {
 			this._data = null
 		}
-		static get label() { return ["🤚️", "move", true] }
+		static get label() { return ["🤚", "move", true] }
+	},
+	SuperMove: class extends Stroke {
+		down(d) {
+			this._data = this.context[2].layers.map(layer => layer.get_data())
+		}
+		move(d) {
+			const ofs = this.pos.Subtract(this.start).Round() // todo: round better
+			const {width, height} = d.canvas
+			let {x, y} = ofs
+			x = (x+width*100) % width
+			y = (y+height*100) % height
+			for (let i=0;i<this.context[2].layers.length;i++){
+				this.context[2].layers[i].put_data(this._data[i], x, y, false)
+				this.context[2].layers[i].put_data(this._data[i], x-width, y, false)
+				this.context[2].layers[i].put_data(this._data[i], x, y-height, false)
+				this.context[2].layers[i].put_data(this._data[i], x-width, y-height, false)	
+			}
+		}
+		up(d) {
+			for (let i=0;i<this.context[2].layers.length;i++){
+				this.context[2].layers[i].mirror_thumb()
+			}
+			this._data = null
+		}
+		static get label() { return ["🙌", "move all layers at once", true] }
 	},
 	Copy: class extends Stroke {
 		down(d, v) {
@@ -430,6 +460,24 @@ class Grp {
 		this.c2d.globalCompositeOperation = 'copy'
 		this.c2d.resetTransform()
 		this.c2d.clearRect(0, 0, this.canvas.width, this.canvas.height)
+		this.c2d.restore()
+	}
+	flip() {
+		this.c2d.save()
+		this.c2d.globalCompositeOperation = 'copy'
+		this.c2d.resetTransform()
+		this.c2d.translate(this.canvas.width, 0)
+		this.c2d.scale(-1, 1)
+		this.c2d.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height)
+		this.c2d.restore()
+	}
+	flop() {
+		this.c2d.save()
+		this.c2d.globalCompositeOperation = 'copy'
+		this.c2d.resetTransform()
+		this.c2d.translate(0, this.canvas.height)
+		this.c2d.scale(1, -1)
+		this.c2d.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height)
 		this.c2d.restore()
 	}
 	clear() {
