@@ -326,7 +326,7 @@ class ChatDraw extends HTMLElement {
 			let sel = this.sel_color()
 			const old = this.choices.color.values[sel]
 			this.history.add()
-			this.layers.map(layer => layer.replace_color(old, picked))
+			this.panels.map(panel => panel.map(layer => layer.replace_color(old, picked)))
 			this.grp.mirror_thumb()
 			retrace()
 			//this.grp.replace_color(old, picked)
