@@ -23,6 +23,13 @@ let download
 	}
 }
 
+
+let dupe = (array, index, value) => {
+	let arr = [...array]
+	arr[index] = value
+	return arr
+}
+
 function make_pattern(str, name, context) {
 	const rows = str.split("/")
 	const w = rows[0].length
@@ -152,6 +159,7 @@ class ChatDraw extends HTMLElement {
 	
 	grp = new Grp(this.width, this.height)
 	layers = [this.grp]
+	panels = [this.layers]
 	overlay = new Grp(this.width, this.height)
 	img = new Image(this.width, this.height)
 	form = null
@@ -162,7 +170,16 @@ class ChatDraw extends HTMLElement {
 	color = 0
 	clipboard = null
 	activelayer = 0
+	activepanel = 0
 	focus = false
+	speed = 0
+	trace = 0
+	
+	play = false
+	playing = false
+	timer = 0
+	
+	traced = new Grp(this.width, this.height)
 	
 	flip = false
 	flop = false
@@ -311,6 +328,7 @@ class ChatDraw extends HTMLElement {
 			this.history.add()
 			this.layers.map(layer => layer.replace_color(old, picked))
 			this.grp.mirror_thumb()
+			retrace()
 			//this.grp.replace_color(old, picked)
 			this.set_palette(sel, picked)
 		}
@@ -334,6 +352,34 @@ class ChatDraw extends HTMLElement {
 					layer.canvas.classList.toggle("hide", this.activelayer != index)
 				}
 				layer.thumbcanvas.classList.toggle("selected", this.activelayer == index)
+			})
+		}
+		
+		const panelchange = (d)=>{
+			panelset((this.activepanel + (d || 1) + this.panels.length) % this.panels.length)
+		}
+		const panelset = (d)=>{
+			this.activelayer = 0
+			this.activepanel = d
+			this.layers = this.panels[this.activepanel]
+			this.grp = this.layers[this.activelayer]
+			reloadlayers()
+			retrace()
+			//this.grp.thumbcanvas.scrollIntoView({block: 'nearest', inline: 'nearest'})
+			cc.scrollTop = Math.max(0,this.grp.thumbcanvas.offsetTop + this.grp.thumbcanvas.offsetHeight / 2 - cc.clientHeight / 2)
+			ccc.scrollTop = Math.max(0,this.grp.panelcanvas.offsetTop + this.grp.panelcanvas.offsetHeight / 2 - ccc.clientHeight / 2)
+			chatdraw.form.children[2].firstChild.textContent = `Layers: ${this.activelayer+1}/${this.layers.length}`
+			chatdraw.form.children[4].firstChild.textContent = `Panels: ${this.activepanel+1}/${this.panels.length}`
+			//chatdraw.form.layer.nextElementSibling.textContent = `${this.activelayer+1}/${this.layers.length}`
+			this.layers.forEach((layer, index) => {
+				if (this.focus) {
+					layer.canvas.classList.toggle("main", this.activelayer == index)
+					layer.canvas.classList.toggle("hide", this.activelayer != index)
+				}
+				layer.thumbcanvas.classList.toggle("selected", this.activelayer == index)
+			})
+			this.panels.forEach((panel, index) => {
+				panel[0].panelcanvas.parentElement.classList.toggle("selected", this.activepanel == index)
 			})
 		}
 		
@@ -378,23 +424,36 @@ class ChatDraw extends HTMLElement {
 				download(url, `chatdraw-${url.match(/[/](\w{5})/)?.[1]}.png`)
 			},
 			saveall: ()=>{
-				let temp = new Grp(this.width, this.height)
+				let temp = new Grp(this.width * this.panels.length, this.height)
 				temp.c2d.globalCompositeOperation = 'source-over'
 				//temp.c2d.fillStyle = '#FFFFFF'
 				temp.c2d.resetTransform()
-				this.layers.forEach(layer => {
-					temp.c2d.drawImage(layer.canvas, 0, 0)
+				this.panels.forEach((panel, index) => {
+					panel.forEach(layer => {
+						temp.c2d.drawImage(layer.canvas, this.width * index, 0)
+					})
 				})
+				/*this.layers.forEach(layer => {
+					temp.c2d.drawImage(layer.canvas, 0, 0)
+				})*/
 				const url = temp.export()
 				download(url, `chatdraw-${url.match(/[/](\w{5})/)?.[1]}.png`)
 			},
 			savelayers: ()=>{
-				let temp = new Grp(this.width, this.height * this.layers.length)
+				let count = Math.max(...this.panels.map(panel => panel.length))
+				let temp = new Grp(this.width * this.panels.length, this.height * count + 1)
 				temp.c2d.globalCompositeOperation = 'source-over'
 				temp.c2d.resetTransform()
-				this.layers.forEach((layer, i) => {
-					temp.c2d.drawImage(layer.canvas, 0, this.height * i)
+				this.panels.forEach((panel, index) => {
+					panel.forEach((layer, i) => {
+						temp.c2d.drawImage(layer.canvas, this.width * index, this.height * i)
+					})
+					temp.c2d.fillStyle = `rgb(${panel.length},0,0)`
+					temp.c2d.fillRect(this.width * index, this.height * count, 1, 1)
 				})
+				/*this.layers.forEach((layer, i) => {
+					temp.c2d.drawImage(layer.canvas, 0, this.height * i)
+				})*/
 				const url = temp.export()
 				download(url, `chatdraw-${url.match(/[/](\w{5})/)?.[1]}.png`)
 			},
@@ -416,6 +475,8 @@ class ChatDraw extends HTMLElement {
 			},
 			loadlayers: async (v,e)=>{
 				let file = e.files[0]
+				let temp = new Grp(1,1)
+				temp.c2d.resetTransform()
 				if (!file)
 					return
 				let url = URL.createObjectURL(file)
@@ -424,20 +485,31 @@ class ChatDraw extends HTMLElement {
 					img.src = url
 					await img.decode()
 					this.history.add()
-					this.layers = []
-					let layers = img.height / this.height
-					while (this.layers.length<layers) {
-						this.layers.push(new Grp(this.width, this.height))
+					let panels = img.width / this.width
+					let max = (img.height / this.height) | 0
+					this.panels = []
+					for (let j=0;j<panels;j++) {
+						this.layers = []
+						//temp.c2d.drawImage(img, 0, 0, 1, 1)
+						temp.c2d.drawImage(img, this.width * j, this.height * max, 1, 1, 0, 0, 1, 1)
+						let data = temp.c2d.getImageData(0,0,1,1)
+						let layers = data.data[0]
+						while (this.layers.length<layers) {
+							this.layers.push(new Grp(this.width, this.height))
+						}
+						for (let i=0;i<layers;i++) {
+							this.layers[i].c2d.drawImage(img, this.width*j, this.height*i, this.width, this.height, 1000, 0, this.width, this.height)
+							this.layers[i].replace_color('#e4d8a9', null)
+							this.layers[i].mirror_thumb()
+						}
+						this.panels.push(this.layers)
 					}
-					for (let i=0;i<layers;i++) {
-						this.layers[i].c2d.drawImage(img, 0, this.height*i, this.width, this.height, 1000, 0, this.width, this.height)
-						this.layers[i].replace_color('#e4d8a9', null)
-						this.layers[i].mirror_thumb()	
-					}
-					this.layers.map(layer => layer.copy_settings_layer(this.grp))
+					this.panels.map(panel => panel.map(layer => layer.copy_settings_layer(this.grp)))
 					this.set_palette2(this.all_palette(this.palsize))
+					//this.panels = dupe(this.panels, this.activepanel, this.layers)
 					reloadlayers()
-					layerset(0)
+					panelset(0)
+					
 				} finally {
 					URL.revokeObjectURL(url)
 				}
@@ -447,6 +519,7 @@ class ChatDraw extends HTMLElement {
 				let lay = new Grp(this.width, this.height)
 				lay.copy_settings_layer(this.grp)
 				this.layers = [...this.layers, lay]
+				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
 				layerset(this.layers.length-1)
 			},
@@ -454,6 +527,7 @@ class ChatDraw extends HTMLElement {
 				if (this.layers.length == 1) return
 				this.history.add()
 				this.layers = this.layers.filter(layer => layer != this.grp)
+				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
 				layerset(Math.min(this.activelayer,this.layers.length-1))
 			},
@@ -463,6 +537,7 @@ class ChatDraw extends HTMLElement {
 				lay.copy_settings_layer(this.grp)
 				lay.put_data(this.grp.get_data())
 				this.layers = [...this.layers, lay]
+				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
 				layerset(this.layers.length-1)
 			},
@@ -523,6 +598,94 @@ class ChatDraw extends HTMLElement {
 			vermirror: ()=>{
 				this.flop = !this.flop
 				c.classList.toggle("flop", this.flop)
+			},
+			padd: ()=>{
+				this.history.add()
+				let lay = new Grp(this.width, this.height)
+				lay.copy_settings_layer(this.grp)
+				this.panels = [...this.panels, [lay]]
+				reloadlayers()
+				panelset(this.panels.length-1)
+			},
+			premove: ()=>{
+				if (this.panels.length == 1) return
+				this.history.add()
+				this.panels = this.panels.filter(panel => panel != this.layers)
+				//this.panels = dupe(this.panels, this.activepanel, this.layers)
+				reloadlayers()
+				panelset(Math.min(this.activepanel,this.panels.length-1))
+			},
+			pclone: ()=>{
+				this.history.add()
+				let lays = this.layers.map((layer, index) => {
+					let lay = new Grp(this.width, this.height)
+					lay.copy_settings_layer(this.grp)
+					lay.put_data(layer.get_data())
+					return lay
+				})
+				this.panels = [...this.panels, lays]
+				reloadlayers()
+				panelset(this.panels.length-1)
+			},
+			pshiftup: ()=>{
+				if ((this.activepanel) == 0) return
+				this.history.add()
+				let panels = [...this.panels]
+				let swapper = this.panels[this.activepanel]
+				let swappee = this.panels[this.activepanel - 1]
+				panels[this.activepanel] = swappee
+				panels[this.activepanel - 1] = swapper
+				this.panels = panels
+				panelchange(-1)
+			},
+			pshift: ()=>{
+				if ((this.activepanel + 1) == this.panels.length) return
+				this.history.add()
+				let panels = [...this.panels]
+				let swapper = this.panels[this.activepanel]
+				let swappee = this.panels[this.activepanel + 1]
+				panels[this.activepanel] = swappee
+				panels[this.activepanel + 1] = swapper
+				this.panels = panels
+				panelchange(1)
+			},
+			pselectup: ()=>{
+				panelchange(-1)
+			},
+			pselect: ()=>{
+				panelchange(1)
+			},
+			trace: ()=>{
+				this.trace = (this.trace + 1) % 5
+				this.form.trace.nextElementSibling.textContent = `trace\n${"◆".repeat(this.trace).padEnd(4,"◇")}`
+				retrace()
+			},
+			speed: ()=>{
+				this.speed = (this.speed + 1) % 4
+				this.form.speed.nextElementSibling.textContent = `speed\n${"▶".repeat(this.speed).padEnd(3,"▷")}`
+			},
+			play: ()=>{
+				this.play = !this.play
+				if (this.play && !this.playing) {
+					this.playing = true
+					this.timer = 60 - this.speed * 18
+					panelset(0)
+					requestAnimationFrame(animate)
+				}
+			}
+		}
+		
+		const animate = () => {
+			this.timer--;
+			if (this.timer<0){
+				this.timer = 60 - this.speed * 18
+				panelchange(1)
+			}
+			if (this.play) {
+				requestAnimationFrame(animate)
+			}
+			else {
+				this.playing = false
 			}
 		}
 		
@@ -557,6 +720,18 @@ class ChatDraw extends HTMLElement {
 				{name:'horflip', label:["flip⇔","flip the layer horizontally",false]},
 				{name:'verflip', label:["flip⇕","flip the layer vertically",false]},
 			]},
+			{title:`Panels: ${this.activepanel+1}/${this.panels.length}`, cols: 2, items:[
+				{name:'padd', label:["+", "add panel", true]},
+				{name:'pselectup', label:["▲", "select previous panel"]},
+				{name:'premove', label:["–", "remove panel", true]},
+				{name:'pselect', label:["▼", "select next panel"]},
+				{name:'pshiftup', label:["shift↑", "shift panel up"]},
+				{name:'pclone', label:["clone", "clone the current panel"]},
+				{name:'pshift', label:["shift↓", "shift panel down"]},
+				{name:'trace', label:["trace\n◇◇◇◇", "show afterimages of previous panels"]},
+				{name:'play', label:["play", "preview all panels as animation"]},
+				{name:'speed', label:["speed\n▷▷▷", "change the preview speed"]},
+			]},
 			{title:"Tool", cols: 2, items:[
 				...this.choices.tool.buttons,
 				{name:'fill', label:["fill","fill screen"]},
@@ -575,6 +750,7 @@ class ChatDraw extends HTMLElement {
 		this.form.hormirror.type = "checkbox"
 		this.form.vermirror.type = "checkbox"
 		this.form.focus.type = "checkbox"
+		this.form.play.type = "checkbox"
 		
 		if (safari)
 			this.form.pick.onblur = this.form.pick.onfocus = ev=>{
@@ -586,23 +762,34 @@ class ChatDraw extends HTMLElement {
 		/// undo buffer ///
 		this.history = new Undo(
 			50,
-			()=>({
-				data: this.layers.map(layer => layer.get_data()),
+			(prevsel,prevselpanel)=>({
+				//data: this.layers.map(layer => layer.get_data()),
+				data: this.panels.map(panel => panel.map(layer => layer.get_data())),
 				//data: this.grp.get_data(),
 				palette: this.choices.color.values.slice(0, this.palsize),
-				layers: this.layers, 
-				selected: this.activelayer
+				layers: this.layers,
+				panels: this.panels,
+				selected: prevsel == undefined ? this.activelayer : prevsel,
+				selectedpanel: prevselpanel == undefined ? this.activepanel : prevselpanel
 			}),
 			(data)=>{
-				if (this.layers != data.layers) {
-					//this.layers.filter(layer => !data.layers.includes(layer)).forEach(layer => )
-					this.layers = [...data.layers]
+				if (this.panels != data.panels) {
+					this.panels = [...data.panels]
 					reloadlayers()
 				}
-				data.data.forEach((layer, index) => this.layers[index].put_data(layer))
+				/*else if (this.panels[data.selectedpanel] != data.layers) {
+					//this.layers.filter(layer => !data.layers.includes(layer)).forEach(layer => )
+					this.layers = [...data.layers]
+					this.panels = dupe(this.panels, this.activepanel, this.layers)
+					reloadlayers()
+					console.log("somehow used old layer/panel change")
+				}*/
+				//data.data.forEach((layer, index) => this.panels[data.selectedpanel][index].put_data(layer))
+				data.data.forEach((layers, panel) => layers.forEach((layer, index) => this.panels[panel][index].put_data(layer)))
 				//this.layers.put_data(data.data)
 				//this.grp.put_data(data.data)
 				this.set_palette2(data.palette)
+				panelset(data.selectedpanel)
 				layerset(data.selected)
 			},
 			(can_undo, can_redo)=>{
@@ -620,25 +807,84 @@ class ChatDraw extends HTMLElement {
 		c.style.setProperty('--height', this.height)
 		c.style.textAlign = "center"
 		c.className = 'canvas'
-		c.append(...this.layers.map(layer => layer.canvas), this.overlay.canvas)
+		c.append(this.traced.canvas, ...this.panels[this.activepanel].map(layer => layer.canvas), this.overlay.canvas)
+		//c.append(...this.layers.map(layer => layer.canvas), this.overlay.canvas)
 		c.style.cursor = make_cursor(3)
+		
 		let cc = document.createElement('div')
-		cc.style.setProperty('--width', this.width/4)
-		cc.style.setProperty('--height', this.height/4)
+		/*cc.style.setProperty('--width', this.width/4)
+		cc.style.setProperty('--height', this.height/4)*/
 		cc.style.textAlign = "center"
 		cc.className = 'thumbs'
+		cc.textContent = "Layers"
 		cc.append(...this.layers.map(layer => layer.thumbcanvas))
+		
+		let ccc = document.createElement('div')
+		/*ccc.style.setProperty('--width', this.width/4)
+		ccc.style.setProperty('--height', this.height/4)*/
+		ccc.style.textAlign = "center"
+		ccc.className = 'panels'
+		ccc.textContent = "Panels"
+		
+		let lp = document.createElement('div')
+		lp.className = "lpcontainer"
+		lp.append(cc, ccc)
+		lp.style.setProperty('--width', this.width/4)
+		lp.style.setProperty('--height', this.height/4)
+		//lp.style.textAlign = "center"
+		
+		let containerize = (panels) => {
+			let container = document.createElement('div')
+			container.className = "panel"
+			container.append(...panels)
+			container.targetPanel = panels
+			return container
+		}
+		ccc.append(...this.panels.map(panel => containerize(panel.map(layer => layer.panelcanvas))))
+		ccc.firstElementChild.classList.add('selected')
 		
 		const reloadlayers = () => {
 			c.textContent = ""
-			cc.textContent = ""
-			c.append(...this.layers.map(layer => layer.canvas), this.overlay.canvas)
+			cc.textContent = "Layers"
+			ccc.textContent = "Panels"
+			c.append(this.traced.canvas, ...this.layers.map(layer => layer.canvas), this.overlay.canvas)
 			cc.append(...this.layers.map(layer => layer.thumbcanvas))
+			ccc.append(...this.panels.map(panel => containerize(panel.map(layer => layer.panelcanvas))))
+		}
+		
+		const retrace = () => {
+			this.traced.erase()
+			if (this.trace) {
+				let vis = 1
+				this.traced.c2d.save()
+				this.traced.c2d.globalCompositeOperation = 'source-over'
+				this.traced.c2d.resetTransform()
+				let temp = new Grp(this.width, this.height)
+				temp.c2d.globalCompositeOperation = 'source-over'
+				temp.c2d.resetTransform()
+				for(let i=this.activepanel-1; i>=Math.max(0,this.activepanel-this.trace); i--) {
+					temp.erase()
+					for (let j=0;j<this.panels[i].length;j++) {
+						temp.c2d.drawImage(this.panels[i][j].canvas, 0, 0, this.width, this.height)
+					}
+					vis *= .7
+					this.traced.c2d.globalAlpha = vis
+					this.traced.c2d.drawImage(temp.canvas, 0, 0, this.width, this.height)
+					//this.traced.c2d.drawImage(this.panels[0][0].canvas, 0, 0, this.width, this.height)
+				}
+				this.traced.c2d.restore()
+			}
 		}
 		
 		cc.addEventListener("click", (e) => {
 			if (e.target.nodeName != "CANVAS") return
 			layerset(this.layers.findIndex(layer => layer.thumbcanvas == e.target))
+		})
+		
+		ccc.addEventListener("click", (e) => {
+			let elem = e.target.nodeName == "DIV" ? e.target : e.target.parentElement
+			if (elem.nodeName != "DIV") return
+			panelset(this.panels.findIndex(panel => panel[0].panelcanvas == elem.targetPanel[0]))
 		})
 		
 		Stroke.handle(c, ev=>{
@@ -654,7 +900,7 @@ class ChatDraw extends HTMLElement {
 		
 		super.attachShadow({mode: 'open'}).append(
 			...ChatDraw.styles.map(x=>document.importNode(x, true)),
-			c, cc, this.form
+			c, /*cc, ccc,*/ lp, this.form
 		)
 		
 		this.choose('tool', 0)
@@ -730,14 +976,16 @@ class ChatDraw extends HTMLElement {
 	
 	all_palette(lim) {
 		let colors = new Set()
-		for (let l=0;l<this.layers.length;l++) {
-			const d = this.layers[l].get_data().data
-			for (let i=0; i<d.length; i+=4)
-				if (d[i+3]) {
-					colors.add(d[i]<<16|d[i+1]<<8|d[i+2])
-					if (colors.size >= lim)
-						break
-				}
+		for (let p=0;p<this.panels.length;p++) {
+			for (let l=0;l<this.panels[p].length;l++) {
+				const d = this.panels[p][l].get_data().data
+				for (let i=0; i<d.length; i+=4)
+					if (d[i+3]) {
+						colors.add(d[i]<<16|d[i+1]<<8|d[i+2])
+						if (colors.size >= lim)
+							break
+					}
+			}
 		}
 		return [...colors].map(x=>"#"+x.toString(16).padStart(6,"0"))
 	}

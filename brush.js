@@ -385,6 +385,8 @@ class Grp {
 	c2d = null
 	thumbcanvas = null
 	thumbc2d = null
+	panelcanvas = null
+	panelc2d = null
 	brush = null
 	inverted = false
 	
@@ -394,9 +396,15 @@ class Grp {
 		const x = this.canvas = document.createElement('canvas')
 		x.width = width
 		x.height = height
+		
 		const xt = this.thumbcanvas = document.createElement('canvas')
 		xt.width = width
 		xt.height = height
+		
+		const xp = this.panelcanvas = document.createElement('canvas')
+		xp.width = width
+		xp.height = height
+		
 		
 		const c = this.c2d = this.canvas.getContext('2d')
 		c.imageSmoothingEnabled = false
@@ -409,6 +417,12 @@ class Grp {
 		ct.shadowOffsetX = 1000
 		ct.shadowColor = "#000000"
 		ct.translate(-1000, 0)
+		
+		const cp = this.panelc2d = this.panelcanvas.getContext('2d')
+		cp.imageSmoothingEnabled = false
+		cp.shadowOffsetX = 1000
+		cp.shadowColor = "#000000"
+		cp.translate(-1000, 0)
 	}
 	set color(v) {
 		this.c2d.shadowColor = v
@@ -447,13 +461,14 @@ class Grp {
 	}
 	mirror_thumb() {
 		this.thumbc2d.putImageData(this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height), 0, 0)
+		this.panelc2d.putImageData(this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height), 0, 0)
 	}
 	get_data() {
 		return this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height)
 	}
 	put_data(data, x=0, y=0, mirror=true) { // hm this takes x,y... nnnn
 		this.c2d.putImageData(data, x, y)
-		if (mirror) this.thumbc2d.putImageData(data, x, y)
+		if (mirror) this.thumbc2d.putImageData(data, x, y), this.panelc2d.putImageData(data, x, y)
 	}
 	erase() {
 		this.c2d.save()
@@ -626,7 +641,7 @@ class Undo {
 			return
 		if (!redo) this.pos--
 		const data = this.states[this.pos]
-		this.states[this.pos] = this.get()
+		this.states[this.pos] = this.get(data.selected, data.selectedpanel)
 		if (redo) this.pos++
 		this.put(data)
 		this.onchange(this.can(false), this.can(true))

@@ -49,10 +49,10 @@
 	opacity: 0;
 }
 
-:host > .thumbs {
+.lpcontainer > .thumbs {
 	grid-area: canvas;
 	position: relative;
-	display: block;
+	display: inline-block;
 	width: min-content;
 	height: calc(var(--height)*var(--S)*4px);
 	background: white;
@@ -60,7 +60,7 @@
 	border: calc(var(--S)*2px) solid #DDD;
 }
 
-:host > .thumbs > * {
+.lpcontainer > .thumbs > * {
 	border: calc(var(--S)*1px) solid #DDD;
 	width: calc(var(--width)*var(--S)*1px) !important;
 	height: calc(var(--height)*var(--S)*1px);
@@ -69,27 +69,68 @@
 	margin: calc(var(--S)*1px);
 }
 
+.lpcontainer > .panels {
+	grid-area: canvas;
+	position: relative;
+	display: inline-block;
+	width: min-content;
+	height: calc(var(--height)*var(--S)*4px);
+	background: white;
+	overflow-y: scroll;
+	border: calc(var(--S)*2px) solid #DDD;
+}
+
+.lpcontainer > .panels > * {
+	border: calc(var(--S)*1px) solid #DDD;
+	width: calc(var(--width)*var(--S)*1px) !important;
+	height: calc(var(--height)*var(--S)*1px);
+	cursor: pointer;
+	display: block;
+	margin: calc(var(--S)*1px);
+}
+
+.panel > * {
+	display: block;
+	position: absolute;
+	width: calc(var(--width)*var(--S)*1px) !important;
+	height: calc(var(--height)*var(--S)*1px);
+}
+
+:host > .lpcontainer {
+	grid-area: canvas;
+	position: relative;
+	display: block;
+	width: max-content;
+	font-size: calc(var(--S)*5px);
+}
+
 canvas {
 	image-rendering: -moz-crisp-edges; image-rendering: pixelated;
 }
-.canvas > canvas:nth-child(1), .main, .thumbs > canvas {
+.canvas > canvas:nth-child(1), .main, .thumbs > canvas, .panel > canvas:nth-child(1) {
 	background: url(data:image/webp;base64,UklGRngAAABXRUJQVlA4TGwAAAAvEUAEAI9AmG00f8lD6escBAKJP+0GJxBI8kdZ8vmvwyo0wAyAgQMMFLSRpNwzk3+5OBIi+i82SeakQ0RpY50PMeVSWx9zPX/Xd/9+YNcf2PUHFoAewAagBjABOAF0AFYAFYARwAGgBbD8YQY=), #e4d8a9;/*repeating-linear-gradient(1.23deg, #F0E0AA, #D8D0A8 0.38291px);*/
 }
 canvas.hide {
 	opacity: 0;
 }
-canvas.selected {
+canvas.selected, .panel.selected {
 	border-color: black !important;
 }
 canvas.overlay {
 	opacity: 0.7;
 }
-.thumbs {
+.lpcontainer {
+	left: calc((var(--width)*var(--S) + var(--S))*4px);
+}
+.lpcontainer canvas {
+	image-rendering: unset;
+}
+/*.thumbs {
 	left: calc((var(--width)*var(--S) + var(--S))*4px);
 }
 .thumbs canvas {
 	image-rendering: unset;
-}
+}*/
 
 /* controls */
 form {
