@@ -277,7 +277,7 @@ class ChatDraw extends HTMLElement {
 				].slice(0, this.palsize), //"#000000","#FFFFFF","#ca2424","#7575e8","#25aa25","#ebce30"
 				(v,i)=>{
 					this.color = i
-					this.layers.map(layer => layer.color = v)
+					this.panels.map(panel => panel.map(layer => layer.color = v))
 					//this.grp.color = v
 					this.form.pick.value = v
 				},
@@ -289,20 +289,20 @@ class ChatDraw extends HTMLElement {
 			),
 			brush: new Choices(
 				'brush', brushes,
-				v=>this.layers.map(layer => layer.brush = v),
+				v=>this.panels.map(panel => panel.map(layer => layer.brush = v)),
 				//v=>this.grp.brush = v,
 				v=>v.label
 			),
 			pattern: new Choices(
 				'pattern', patterns,
-				v=>this.layers.map(layer => layer.pattern = v),
+				v=>this.panels.map(panel => panel.map(layer => layer.pattern = v)),
 				//v=>this.grp.pattern = v,
 				v=>v._label
 			),
 			composite: new Choices(
 				'composite', ['source-over', 'destination-over', 'source-atop', 'destination-out', 'xor'],
 				// messy, we need to have a nicer way to like, keep track of the labels idk.. associate with values etc,
-				v=>this.layers.map(layer => layer.composite = v),
+				v=>this.panels.map(panel => panel.map(layer => layer.composite = v)),
 				//v=>this.grp.composite = v,
 				v=>({
 					'source-over':["over"],
@@ -316,7 +316,7 @@ class ChatDraw extends HTMLElement {
 			),
 			invert: new Choices(
 				'invert', [false, true],
-				v=>this.layers.map(layer => layer.invert = v),
+				v=>this.panels.map(panel => panel.map(layer => layer.invert = v)),
 				//v=>this.grp.invert = v,
 				v=>v?['invert']:['no']
 			),
