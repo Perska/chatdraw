@@ -23,7 +23,7 @@
 	chat-draw {
 		align-self: flex-start;
 	}
-	chat-draw {
+	chat-draw.centered {
 		align-self: center;
 	}
 	textarea {
@@ -41,13 +41,14 @@
 
 <form method=dialog>
 	<label>Scale: <input name=scale type=number min=1 max=10 value=4 id=$scale size=3 onchange="chatdraw.set_scale(value/devicePixelRatio)"></label>
+	<label>Center chatdraw: <input name=center type=checkbox checked=true id=$center onchange="chatdraw.centering(checked)"></label>
 	<label>testing:<textarea id=$code></textarea></label>
 	<input type="button" onclick="$log.textContent='...';$log.textContent=String(eval($code.value))" value="run">
 	<pre id=$log></pre>
 	<label style=color:goldenrod>Last stroke: <i id=$stroke></i></label>
 </form>
 <hr>
-<chat-draw></chat-draw>
+<chat-draw class="centered"></chat-draw>
 
 
 <script>

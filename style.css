@@ -4,8 +4,8 @@
 :host {
 	display: inline-grid !important;
 	grid-template:
-		"canvas"
-		"controls";
+		"canvas layers"
+		"controls controls";
 	--S: 2;
 	-webkit-user-select: none; user-select: none;
 	-webkit-text-size-adjust: none;
@@ -50,7 +50,7 @@
 }
 
 .lpcontainer > .thumbs {
-	grid-area: canvas;
+	/*grid-area: canvas;*/
 	position: relative;
 	display: inline-block;
 	width: min-content;
@@ -70,7 +70,7 @@
 }
 
 .lpcontainer > .panels {
-	grid-area: canvas;
+	/*grid-area: canvas;*/
 	position: relative;
 	display: inline-block;
 	width: min-content;
@@ -97,9 +97,9 @@
 }
 
 :host > .lpcontainer {
-	grid-area: canvas;
-	position: relative;
-	display: block;
+	grid-area: layers;
+	/*position: relative;
+	display: block;*/
 	width: max-content;
 	font-size: calc(var(--S)*5px);
 }
@@ -120,7 +120,7 @@ canvas.overlay {
 	opacity: 0.7;
 }
 .lpcontainer {
-	left: calc((var(--width)*var(--S) + var(--S))*4px);
+	/*left: calc((var(--width)*var(--S) + var(--S))*4px);*/
 }
 .lpcontainer canvas {
 	image-rendering: unset;

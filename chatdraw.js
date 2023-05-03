@@ -943,6 +943,10 @@ class ChatDraw extends HTMLElement {
 	set_scale(n) {
 		this.style.setProperty('--S', n)
 	}
+	
+	centering(checked) {
+		this.classList.toggle("centered", checked)
+	}
 	// todo: allow passing a more useful value here
 	choose(name, value) {
 		const elem = this.form.querySelector(`input[name="${name}"][value="${value}"]`)
