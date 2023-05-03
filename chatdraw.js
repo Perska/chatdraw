@@ -353,6 +353,9 @@ class ChatDraw extends HTMLElement {
 				}
 				layer.thumbcanvas.classList.toggle("selected", this.activelayer == index)
 			})
+			this.panels.forEach((panel, index) => {
+				panel[0].panelcanvas.parentElement.classList.toggle("selected", this.activepanel == index)
+			})
 		}
 		
 		const panelchange = (d)=>{
@@ -493,7 +496,7 @@ class ChatDraw extends HTMLElement {
 						//temp.c2d.drawImage(img, 0, 0, 1, 1)
 						temp.c2d.drawImage(img, this.width * j, this.height * max, 1, 1, 0, 0, 1, 1)
 						let data = temp.c2d.getImageData(0,0,1,1)
-						let layers = data.data[0]
+						let layers = data.data[0] | max
 						while (this.layers.length<layers) {
 							this.layers.push(new Grp(this.width, this.height))
 						}
