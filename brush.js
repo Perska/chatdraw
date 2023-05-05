@@ -70,7 +70,7 @@ class Point extends DOMPointReadOnly {
 		const diff = end.Subtract(start)
 		const [step_h, step_v] = diff.cardinals(diag)
 		// loop
-		let i = 999
+		let i = 9999
 		for (let pos=this,step=step_v; pos.c_dist(end)>0.5; pos=pos.Add(step)) {
 			if (--i < 0) {
 				alert(`infinite loop drawing line: from ${start} to ${end} (diag: ${diag})`)
@@ -366,7 +366,7 @@ class ImageBrush {
 		if (!this.source)
 			return
 		const {x, y} = pos.Subtract(this.origin).Round()
-		c2d.drawImage(this.source, this.colorize?x:x+1000, y)
+		c2d.drawImage(this.source, this.colorize?x:x+(this.canvas.width * 5), y)
 	}
 	line(c2d, start, end) {
 		if (!this.source)
@@ -408,21 +408,21 @@ class Grp {
 		
 		const c = this.c2d = this.canvas.getContext('2d')
 		c.imageSmoothingEnabled = false
-		c.shadowOffsetX = 1000
+		c.shadowOffsetX = (this.canvas.width * 5)
 		c.shadowColor = "#000000"
-		this.c2d.translate(-1000, 0)
+		this.c2d.translate(-(this.canvas.width * 5), 0)
 		
 		const ct = this.thumbc2d = this.thumbcanvas.getContext('2d')
 		ct.imageSmoothingEnabled = false
-		ct.shadowOffsetX = 1000
+		ct.shadowOffsetX = (this.canvas.width * 5)
 		ct.shadowColor = "#000000"
-		ct.translate(-1000, 0)
+		ct.translate(-(this.canvas.width * 5), 0)
 		
 		const cp = this.panelc2d = this.panelcanvas.getContext('2d')
 		cp.imageSmoothingEnabled = false
-		cp.shadowOffsetX = 1000
+		cp.shadowOffsetX = (this.canvas.width * 5)
 		cp.shadowColor = "#000000"
-		cp.translate(-1000, 0)
+		cp.translate(-(this.canvas.width * 5), 0)
 	}
 	set color(v) {
 		this.c2d.shadowColor = v
@@ -510,7 +510,7 @@ class Grp {
 		r = this.brush.adjust_cursor(r).Add(this.brush.origin)
 		// use the brush like a stencil. this also corrects for density at different sizes
 		// todo: this breaks in colorize mode.
-		if (this.c2d.isPointInPath(this.brush.path, r.x+.5-1000, r.y+.5)) {
+		if (this.c2d.isPointInPath(this.brush.path, r.x+.5-(this.canvas.width * 5), r.y+.5)) {
 			pos = pos.Add(r).Subtract(this.brush.origin)
 			this.c2d.fillRect(pos.x, pos.y, 1, 1)
 		}

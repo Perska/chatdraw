@@ -193,12 +193,12 @@ class ChatDraw extends HTMLElement {
 		this.overlay.canvas.classList.add('overlay')
 		/// define brushes ///
 		const brushes = []
-		for (let i=1; i<=3; i++)
+		for (let i=1; i<=8; i++)
 			brushes.push(Brush.Square(i, true, [`${i}▞`, `square ${i}×${i} thin`]))
-		for (let i=4; i<=8; i++)
-			brushes.push(Brush.Circle(i, true, [`●${i}`, `round ${i}×${i}`]))
-		for (let i=1; i<=3; i++)
+		for (let i=1; i<=8; i++)
 			brushes.push(Brush.Square(i, false, [`${i}▛`, `square ${i}×${i} thick`]))
+		for (let i=1; i<=8; i++)
+			brushes.push(Brush.Circle(i, true, [`●${i}`, `round ${i}×${i}`]))
 		brushes.push(new Brush(new Point(2.5,0.5), [[0, 0, 5, 1]], 5, false, ["—5", "a"]))
 		brushes.push(new Brush(new Point(2.5,2.5), [
 			[0,0,1,1],// wonder if we should store these as like, DOMRect?
@@ -501,7 +501,7 @@ class ChatDraw extends HTMLElement {
 							this.layers.push(new Grp(this.width, this.height))
 						}
 						for (let i=0;i<layers;i++) {
-							this.layers[i].c2d.drawImage(img, this.width*j, this.height*i, this.width, this.height, 1000, 0, this.width, this.height)
+							this.layers[i].c2d.drawImage(img, this.width*j, this.height*i, this.width, this.height, (this.canvas.width * 5), 0, this.width, this.height)
 							this.layers[i].replace_color('#e4d8a9', null)
 							this.layers[i].mirror_thumb()
 						}
@@ -819,7 +819,6 @@ class ChatDraw extends HTMLElement {
 		cc.style.setProperty('--height', this.height/4)*/
 		cc.style.textAlign = "center"
 		cc.className = 'thumbs'
-		cc.textContent = "Layers"
 		cc.append(...this.layers.map(layer => layer.thumbcanvas))
 		
 		let ccc = document.createElement('div')
@@ -827,7 +826,6 @@ class ChatDraw extends HTMLElement {
 		ccc.style.setProperty('--height', this.height/4)*/
 		ccc.style.textAlign = "center"
 		ccc.className = 'panels'
-		ccc.textContent = "Panels"
 		
 		let lp = document.createElement('div')
 		lp.className = "lpcontainer"
@@ -848,8 +846,8 @@ class ChatDraw extends HTMLElement {
 		
 		const reloadlayers = () => {
 			c.textContent = ""
-			cc.textContent = "Layers"
-			ccc.textContent = "Panels"
+			cc.textContent = ""
+			ccc.textContent = ""
 			c.append(this.traced.canvas, ...this.layers.map(layer => layer.canvas), this.overlay.canvas)
 			cc.append(...this.layers.map(layer => layer.thumbcanvas))
 			ccc.append(...this.panels.map(panel => containerize(panel.map(layer => layer.panelcanvas))))
@@ -944,6 +942,15 @@ class ChatDraw extends HTMLElement {
 		this.style.setProperty('--S', n)
 	}
 	
+	set_scalecanvas(n) {
+		this.style.setProperty('--SC', n)
+		this.grp.canvas.parentElement.classList.toggle("small", n < 1)
+	}
+	
+	set_offset(n) {
+		this.style.setProperty('margin-left', n+"px")
+	}
+	
 	centering(checked) {
 		this.classList.toggle("centered", checked)
 	}
@@ -975,7 +982,7 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	import(img) {
-		this.grp.c2d.drawImage(img, 1000, 0, this.width, this.height)
+		this.grp.c2d.drawImage(img, (this.canvas.width * 5), 0, this.width, this.height)
 		this.grp.replace_color('#e4d8a9', null)
 		//this.set_palette2(this.grp.get_palette(this.palsize))
 		this.set_palette2(this.all_palette(this.palsize))

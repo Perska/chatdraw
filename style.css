@@ -7,6 +7,7 @@
 		"canvas layers"
 		"controls controls";
 	--S: 2;
+	--SC: 2;
 	-webkit-user-select: none; user-select: none;
 	-webkit-text-size-adjust: none;
 	background: #B0B098;
@@ -15,10 +16,11 @@
 	cursor: crosshair;
 	touch-action: none;
 	grid-area: canvas;
-	border: solid gray calc(var(--S)*2px);
-	width: calc(var(--width)*var(--S)*1px);
-	height: calc(var(--height)*var(--S)*1px);
+	border: solid gray calc(var(--SC)*2px);
+	width: calc(var(--width)*var(--SC)*1px);
+	height: calc(var(--height)*var(--SC)*1px);
 	border-color: #b844;
+	margin: 0 auto;
 }
 :host > .canvas.flip {
 	transform: scaleX(-1);
@@ -31,6 +33,10 @@
 }
 :host > .canvas > * {
 	pointer-events: none;
+}
+.canvas.small > * {
+	image-rendering: unset;
+	image-rendering: smooth;
 }
 /* stacked */
 :host > .canvas, chatdraw-button {
@@ -54,19 +60,19 @@
 	position: relative;
 	display: inline-block;
 	width: min-content;
-	height: calc(var(--height)*var(--S)*4px);
+	height: calc(var(--height)*var(--SC)*4px);
 	background: white;
 	overflow-y: scroll;
-	border: calc(var(--S)*2px) solid #DDD;
+	border: calc(var(--SC)*2px) solid #DDD;
 }
 
 .lpcontainer > .thumbs > * {
-	border: calc(var(--S)*1px) solid #DDD;
-	width: calc(var(--width)*var(--S)*1px) !important;
-	height: calc(var(--height)*var(--S)*1px);
+	border: calc(var(--SC)*1px) solid #DDD;
+	width: calc(var(--width)*var(--SC)*1px) !important;
+	height: calc(var(--height)*var(--SC)*1px);
 	cursor: pointer;
 	display: block;
-	margin: calc(var(--S)*1px);
+	margin: calc(var(--SC)*1px);
 }
 
 .lpcontainer > .panels {
@@ -74,26 +80,26 @@
 	position: relative;
 	display: inline-block;
 	width: min-content;
-	height: calc(var(--height)*var(--S)*4px);
+	height: calc(var(--height)*var(--SC)*4px);
 	background: white;
 	overflow-y: scroll;
-	border: calc(var(--S)*2px) solid #DDD;
+	border: calc(var(--SC)*2px) solid #DDD;
 }
 
 .lpcontainer > .panels > * {
-	border: calc(var(--S)*1px) solid #DDD;
-	width: calc(var(--width)*var(--S)*1px) !important;
-	height: calc(var(--height)*var(--S)*1px);
+	border: calc(var(--SC)*1px) solid #DDD;
+	width: calc(var(--width)*var(--SC)*1px) !important;
+	height: calc(var(--height)*var(--SC)*1px);
 	cursor: pointer;
 	display: block;
-	margin: calc(var(--S)*1px);
+	margin: calc(var(--SC)*1px);
 }
 
 .panel > * {
 	display: block;
 	position: absolute;
-	width: calc(var(--width)*var(--S)*1px) !important;
-	height: calc(var(--height)*var(--S)*1px);
+	width: calc(var(--width)*var(--SC)*1px) !important;
+	height: calc(var(--height)*var(--SC)*1px);
 }
 
 :host > .lpcontainer {
@@ -102,6 +108,7 @@
 	display: block;*/
 	width: max-content;
 	font-size: calc(var(--S)*5px);
+	margin: 0 auto;
 }
 
 canvas {
