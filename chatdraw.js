@@ -501,7 +501,7 @@ class ChatDraw extends HTMLElement {
 							this.layers.push(new Grp(this.width, this.height))
 						}
 						for (let i=0;i<layers;i++) {
-							this.layers[i].c2d.drawImage(img, this.width*j, this.height*i, this.width, this.height, (this.canvas.width * 5), 0, this.width, this.height)
+							this.layers[i].c2d.drawImage(img, this.width*j, this.height*i, this.width, this.height, (this.width * 5), 0, this.width, this.height)
 							this.layers[i].replace_color('#e4d8a9', null)
 							this.layers[i].mirror_thumb()
 						}
@@ -982,7 +982,7 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	import(img) {
-		this.grp.c2d.drawImage(img, (this.canvas.width * 5), 0, this.width, this.height)
+		this.grp.c2d.drawImage(img, (this.width * 5), 0, this.width, this.height)
 		this.grp.replace_color('#e4d8a9', null)
 		//this.set_palette2(this.grp.get_palette(this.palsize))
 		this.set_palette2(this.all_palette(this.palsize))

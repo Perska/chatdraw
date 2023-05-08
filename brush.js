@@ -366,7 +366,7 @@ class ImageBrush {
 		if (!this.source)
 			return
 		const {x, y} = pos.Subtract(this.origin).Round()
-		c2d.drawImage(this.source, this.colorize?x:x+(this.canvas.width * 5), y)
+		c2d.drawImage(this.source, this.colorize?x:x+(c2d.canvas.width * 5), y)
 	}
 	line(c2d, start, end) {
 		if (!this.source)
