@@ -44,6 +44,7 @@
 	<label>Canvas Scale: <input name=scalecanvas type=number min=0.5 max=10 value=4 id=$scalecanvas size=4 step=0.5 onchange="chatdraw.set_scalecanvas(value/devicePixelRatio)"></label>
 	<label>Center chatdraw: <input name=center type=checkbox checked=true id=$center onchange="chatdraw.centering(checked)"></label>
 	<label>X Offset: <input name=offset type=number value=0 id=$offset step=20 size=6 onchange="chatdraw.set_offset(value)"></label>
+	<br>
 	<label>testing:<textarea id=$code></textarea></label>
 	<input type="button" onclick="$log.textContent='...';$log.textContent=String(eval($code.value))" value="run">
 	<pre id=$log></pre>

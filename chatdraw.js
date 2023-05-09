@@ -372,7 +372,7 @@ class ChatDraw extends HTMLElement {
 			cc.scrollTop = Math.max(0,this.grp.thumbcanvas.offsetTop + this.grp.thumbcanvas.offsetHeight / 2 - cc.clientHeight / 2)
 			ccc.scrollTop = Math.max(0,this.grp.panelcanvas.offsetTop + this.grp.panelcanvas.offsetHeight / 2 - ccc.clientHeight / 2)
 			chatdraw.form.children[2].firstChild.textContent = `Layers: ${this.activelayer+1}/${this.layers.length}`
-			chatdraw.form.children[4].firstChild.textContent = `Panels: ${this.activepanel+1}/${this.panels.length}`
+			chatdraw.form.children[16].firstChild.textContent = `Panels: ${this.activepanel+1}/${this.panels.length}`
 			//chatdraw.form.layer.nextElementSibling.textContent = `${this.activelayer+1}/${this.layers.length}`
 			this.layers.forEach((layer, index) => {
 				if (this.focus) {
@@ -488,8 +488,8 @@ class ChatDraw extends HTMLElement {
 					img.src = url
 					await img.decode()
 					this.history.add()
-					let panels = img.width / this.width
-					let max = (img.height / this.height) | 0
+					let panels = img.width / this.width | 0 | 1
+					let max = (img.height / this.height) | 0 | 1
 					this.panels = []
 					for (let j=0;j<panels;j++) {
 						this.layers = []
@@ -723,18 +723,6 @@ class ChatDraw extends HTMLElement {
 				{name:'horflip', label:["flip⇔","flip the layer horizontally",false]},
 				{name:'verflip', label:["flip⇕","flip the layer vertically",false]},
 			]},
-			{title:`Panels: ${this.activepanel+1}/${this.panels.length}`, cols: 2, items:[
-				{name:'padd', label:["+", "add panel", true]},
-				{name:'pselectup', label:["▲", "select previous panel"]},
-				{name:'premove', label:["–", "remove panel", true]},
-				{name:'pselect', label:["▼", "select next panel"]},
-				{name:'pshiftup', label:["shift↑", "shift panel up"]},
-				{name:'pclone', label:["clone", "clone the current panel"]},
-				{name:'pshift', label:["shift↓", "shift panel down"]},
-				{name:'trace', label:["trace\n◇◇◇◇", "show afterimages of previous panels"]},
-				{name:'play', label:["play", "preview all panels as animation"]},
-				{name:'speed', label:["speed\n▷▷▷", "change the preview speed"]},
-			]},
 			{title:"Tool", cols: 2, items:[
 				...this.choices.tool.buttons,
 				{name:'fill', label:["fill","fill screen"]},
@@ -748,6 +736,18 @@ class ChatDraw extends HTMLElement {
 			]},
 			{title:"Invert", cols:1, items:this.choices.invert.buttons},
 			{title:"Pattern", small:true, items:this.choices.pattern.buttons},
+			{title:`Panels: ${this.activepanel+1}/${this.panels.length}`, cols: 2, items:[
+				{name:'padd', label:["+", "add panel", true]},
+				{name:'pselectup', label:["▲", "select previous panel"]},
+				{name:'premove', label:["–", "remove panel", true]},
+				{name:'pselect', label:["▼", "select next panel"]},
+				{name:'pshiftup', label:["shift↑", "shift panel up"]},
+				{name:'pclone', label:["clone", "clone the current panel"]},
+				{name:'pshift', label:["shift↓", "shift panel down"]},
+				{name:'trace', label:["trace\n◇◇◇◇", "show afterimages of previous panels"]},
+				{name:'play', label:["play", "preview all panels as animation"]},
+				{name:'speed', label:["speed\n▷▷▷", "change the preview speed"]},
+			]},
 		])
 		
 		this.form.hormirror.type = "checkbox"
@@ -982,7 +982,7 @@ class ChatDraw extends HTMLElement {
 	}
 	
 	import(img) {
-		this.grp.c2d.drawImage(img, (this.width * 5), 0, this.width, this.height)
+		this.grp.c2d.drawImage(img, (this.width * 5), 0, img.width, img.height)
 		this.grp.replace_color('#e4d8a9', null)
 		//this.set_palette2(this.grp.get_palette(this.palsize))
 		this.set_palette2(this.all_palette(this.palsize))

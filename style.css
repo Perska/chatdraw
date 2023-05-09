@@ -60,7 +60,7 @@
 	position: relative;
 	display: inline-block;
 	width: min-content;
-	height: calc(var(--height)*var(--SC)*4px);
+	height: calc(var(--height)*var(--SC)*4px - var(--SC)*4px);
 	background: white;
 	overflow-y: scroll;
 	border: calc(var(--SC)*2px) solid #DDD;
@@ -80,7 +80,7 @@
 	position: relative;
 	display: inline-block;
 	width: min-content;
-	height: calc(var(--height)*var(--SC)*4px);
+	height: calc(var(--height)*var(--SC)*4px - var(--SC)*4px);
 	background: white;
 	overflow-y: scroll;
 	border: calc(var(--SC)*2px) solid #DDD;
@@ -107,6 +107,7 @@
 	/*position: relative;
 	display: block;*/
 	width: max-content;
+	height: calc(var(--height)*var(--SC)*4px + var(--SC)*4px);
 	font-size: calc(var(--S)*5px);
 	margin: 0 auto;
 }
