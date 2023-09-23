@@ -265,7 +265,7 @@ class ChatDraw extends HTMLElement {
 			tool: new Choices(
 				'tool', [
 					tools.Pen, tools.Slow, tools.Line, tools.Spray,
-					tools.Flood, tools.Place, tools.Move, tools.Copy, tools.SuperMove
+					tools.Flood, tools.Place, tools.Move, tools.Copy, tools.SuperMove, tools.LinkedMove
 				],
 				v=>this.tool = v,
 				v=>v.label
@@ -343,7 +343,7 @@ class ChatDraw extends HTMLElement {
 			this.activelayer = d
 			this.grp = this.layers[this.activelayer]
 			//this.grp.thumbcanvas.scrollIntoView({block: 'nearest', inline: 'nearest'})
-			cc.scrollTop = Math.max(0,this.grp.thumbcanvas.offsetTop + this.grp.thumbcanvas.offsetHeight / 2 - cc.clientHeight / 2)
+			cc.scrollTop = Math.max(0,this.grp.thumbcanvas.parentElement.offsetTop + this.grp.thumbcanvas.parentElement.offsetHeight / 2 - cc.clientHeight / 2)
 			chatdraw.form.children[2].firstChild.textContent = `Layers: ${this.activelayer+1}/${this.layers.length}`
 			//chatdraw.form.layer.nextElementSibling.textContent = `${this.activelayer+1}/${this.layers.length}`
 			this.layers.forEach((layer, index) => {
@@ -539,6 +539,7 @@ class ChatDraw extends HTMLElement {
 				let lay = new Grp(this.width, this.height)
 				lay.copy_settings_layer(this.grp)
 				lay.put_data(this.grp.get_data())
+				lay.groupsel.value = this.grp.groupsel.value
 				this.layers = [...this.layers, lay]
 				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
@@ -567,6 +568,11 @@ class ChatDraw extends HTMLElement {
 				let swappee = this.layers[this.activelayer - 1].get_data()
 				this.layers[this.activelayer].put_data(swappee)
 				this.layers[this.activelayer - 1].put_data(swapper)
+				
+				let group_a = this.layers[this.activelayer].groupsel.value
+				let group_b = this.layers[this.activelayer - 1].groupsel.value
+				this.layers[this.activelayer].groupsel.value = group_b
+				this.layers[this.activelayer - 1].groupsel.value = group_a
 				layerchange(-1)
 			},
 			shift: ()=>{
@@ -576,6 +582,11 @@ class ChatDraw extends HTMLElement {
 				let swappee = this.layers[this.activelayer + 1].get_data()
 				this.layers[this.activelayer].put_data(swappee)
 				this.layers[this.activelayer + 1].put_data(swapper)
+				
+				let group_a = this.layers[this.activelayer].groupsel.value
+				let group_b = this.layers[this.activelayer + 1].groupsel.value
+				this.layers[this.activelayer].groupsel.value = group_b
+				this.layers[this.activelayer + 1].groupsel.value = group_a
 				layerchange(1)
 			},
 			selectup: ()=>{
@@ -624,6 +635,7 @@ class ChatDraw extends HTMLElement {
 					let lay = new Grp(this.width, this.height)
 					lay.copy_settings_layer(this.grp)
 					lay.put_data(layer.get_data())
+					lay.groupsel.value = layer.groupsel.value
 					return lay
 				})
 				this.panels = [...this.panels, lays]
@@ -768,6 +780,7 @@ class ChatDraw extends HTMLElement {
 			(prevsel,prevselpanel)=>({
 				//data: this.layers.map(layer => layer.get_data()),
 				data: this.panels.map(panel => panel.map(layer => layer.get_data())),
+				groups: this.panels.map(panel => panel.map(layer => layer.groupsel.value)),
 				//data: this.grp.get_data(),
 				palette: this.choices.color.values.slice(0, this.palsize),
 				layers: this.layers,
@@ -789,6 +802,7 @@ class ChatDraw extends HTMLElement {
 				}*/
 				//data.data.forEach((layer, index) => this.panels[data.selectedpanel][index].put_data(layer))
 				data.data.forEach((layers, panel) => layers.forEach((layer, index) => this.panels[panel][index].put_data(layer)))
+				data.groups.forEach((layers, panel) => layers.forEach((group, index) => this.panels[panel][index].groupsel.value = group))
 				//this.layers.put_data(data.data)
 				//this.grp.put_data(data.data)
 				this.set_palette2(data.palette)
@@ -819,7 +833,7 @@ class ChatDraw extends HTMLElement {
 		cc.style.setProperty('--height', this.height/4)*/
 		cc.style.textAlign = "center"
 		cc.className = 'thumbs'
-		cc.append(...this.layers.map(layer => layer.thumbcanvas))
+		//cc.append(...this.layers.map(layer => layer.thumbcanvas))
 		
 		let ccc = document.createElement('div')
 		/*ccc.style.setProperty('--width', this.width/4)
@@ -833,6 +847,15 @@ class ChatDraw extends HTMLElement {
 		lp.style.setProperty('--width', this.width/4)
 		lp.style.setProperty('--height', this.height/4)
 		//lp.style.textAlign = "center"
+		
+		let layeropts = (layer) => {
+			let box = document.createElement('div')
+			box.className = "layeropt"
+			box.append(layer.thumbcanvas, layer.groupsel)
+			return box
+		}
+		
+		cc.append(...this.layers.map(layer => layeropts(layer)))
 		
 		let containerize = (panels) => {
 			let container = document.createElement('div')
@@ -849,7 +872,7 @@ class ChatDraw extends HTMLElement {
 			cc.textContent = ""
 			ccc.textContent = ""
 			c.append(this.traced.canvas, ...this.layers.map(layer => layer.canvas), this.overlay.canvas)
-			cc.append(...this.layers.map(layer => layer.thumbcanvas))
+			cc.append(...this.layers.map(layer => layeropts(layer)))
 			ccc.append(...this.panels.map(panel => containerize(panel.map(layer => layer.panelcanvas))))
 		}
 		
@@ -890,6 +913,8 @@ class ChatDraw extends HTMLElement {
 		
 		Stroke.handle(c, ev=>{
 			if (ev.button)
+				return
+			if (this.play)
 				return
 			this.history.add()
 			this.tool.PointerDown(ev, this.grp.canvas, this.grp, this.overlay, this)

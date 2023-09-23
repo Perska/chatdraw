@@ -265,6 +265,34 @@ const tools = {
 		}
 		static get label() { return ["🙌", "move all layers at once", true] }
 	},
+	LinkedMove: class extends Stroke {
+		down(d) {
+			this._data = this.context[2].layers.map(layer => layer.get_data())
+			this._group = d.groupsel.value
+		}
+		move(d) {
+			const ofs = this.pos.Subtract(this.start).Round() // todo: round better
+			const {width, height} = d.canvas
+			let {x, y} = ofs
+			x = (x+width*100) % width
+			y = (y+height*100) % height
+			for (let i=0;i<this.context[2].layers.length;i++){
+				if (this.context[2].layers[i].groupsel.value != this._group) continue
+				this.context[2].layers[i].put_data(this._data[i], x, y, false)
+				this.context[2].layers[i].put_data(this._data[i], x-width, y, false)
+				this.context[2].layers[i].put_data(this._data[i], x, y-height, false)
+				this.context[2].layers[i].put_data(this._data[i], x-width, y-height, false)	
+			}
+		}
+		up(d) {
+			for (let i=0;i<this.context[2].layers.length;i++){
+				this.context[2].layers[i].mirror_thumb()
+			}
+			this._data = null
+			this._group = null
+		}
+		static get label() { return ["🔗", "move all linked layers at once", true] }
+	},
 	Copy: class extends Stroke {
 		down(d, v) {
 			this.overlay()
@@ -390,6 +418,8 @@ class Grp {
 	brush = null
 	inverted = false
 	
+	groupsel = null
+	
 	constructor(width, height) {
 		Object.seal(this)
 		
@@ -405,6 +435,12 @@ class Grp {
 		xp.width = width
 		xp.height = height
 		
+		const sel = this.groupsel = document.createElement('input')
+		sel.type = "number"
+		sel.size = 1
+		sel.value = 0
+		sel.min = 0
+		sel.max = 255
 		
 		const c = this.c2d = this.canvas.getContext('2d')
 		c.imageSmoothingEnabled = false
