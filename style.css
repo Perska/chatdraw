@@ -86,7 +86,7 @@
 	bottom: 0px;
 	appearance: textfield;
 	border: calc(var(--SC)*1px) #DDD solid;
-	font-size: calc(var(--SC)*6px - var(--SC)*1px);
+	font-size: calc(var(--width) * var(--SC) / 8 * 1px);
 	text-align: right;
 	opacity: 0.1;
 	/*visibility: hidden;*/
