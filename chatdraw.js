@@ -774,21 +774,42 @@ class ChatDraw extends HTMLElement {
 				picked = null
 			}
 		
+		const blobs = (panels) => {
+			let offc = new OffscreenCanvas(this.width, this.height)
+			let ctx = offc.getContext("2d")
+			return new Promise(resolve => {
+				let blobbed = []
+				panels.forEach(layers => {
+					let slice = []
+					layers.forEach(layer => {
+						ctx.putImageData(layer, 0, 0)
+						offc.convertToBlob({type: 'image/png', quality: "-moz-parse-options:png-zlib-level=9"}).then(blob => {
+							slice.push(blob)
+						})
+					})
+					blobbed.push(slice)
+				})
+				resolve(blobbed)
+			})
+		}
+		
 		/// undo buffer ///
 		this.history = new Undo(
 			50,
-			(prevsel,prevselpanel)=>({
-				//data: this.layers.map(layer => layer.get_data()),
-				data: this.panels.map(panel => panel.map(layer => layer.get_data())),
+			(prevsel,prevselpanel,modifies)=>({ // Todo: add something so that only modifed layers will be stored (check for current tool, and linked layers if necessary)
+				//data: this.panels.map(panel => panel.map(layer => layer.get_data())), // getImageData 
+				//data: this.panels.map(panel => panel.map(layer => layer.canvas.toDataURL('image/png', "-moz-parse-options:png-zlib-level=1"))),  // toDataUrl
+				data: blobs(this.panels.map(panel => panel.map(layer => layer.get_data()))),
 				groups: this.panels.map(panel => panel.map(layer => layer.groupsel.value)),
 				//data: this.grp.get_data(),
 				palette: this.choices.color.values.slice(0, this.palsize),
 				layers: this.layers,
 				panels: this.panels,
 				selected: prevsel == undefined ? this.activelayer : prevsel,
-				selectedpanel: prevselpanel == undefined ? this.activepanel : prevselpanel
+				selectedpanel: prevselpanel == undefined ? this.activepanel : prevselpanel,
+				readyforuse: false
 			}),
-			(data)=>{
+			async (data)=>{
 				if (this.panels != data.panels) {
 					this.panels = [...data.panels]
 					reloadlayers()
@@ -801,13 +822,30 @@ class ChatDraw extends HTMLElement {
 					console.log("somehow used old layer/panel change")
 				}*/
 				//data.data.forEach((layer, index) => this.panels[data.selectedpanel][index].put_data(layer))
-				data.data.forEach((layers, panel) => layers.forEach((layer, index) => this.panels[panel][index].put_data(layer)))
-				data.groups.forEach((layers, panel) => layers.forEach((group, index) => this.panels[panel][index].groupsel.value = group))
-				//this.layers.put_data(data.data)
-				//this.grp.put_data(data.data)
-				this.set_palette2(data.palette)
-				panelset(data.selectedpanel)
-				layerset(data.selected)
+				await data.data.then(blobs => {
+					let img = new Image()
+					let panels = blobs
+					panels.forEach((layers, panel) => layers.forEach((layer, index) => {
+						img.src = URL.createObjectURL(layer)
+						//img.src = layer
+						img.decode().then(() => {
+							this.panels[panel][index].c2d.save()
+							this.panels[panel][index].c2d.resetTransform()
+							this.panels[panel][index].c2d.globalCompositeOperation = "copy"
+							this.panels[panel][index].c2d.drawImage(img, 0, 0, img.width, img.height)
+							this.panels[panel][index].c2d.restore()
+							this.panels[panel][index].mirror_thumb()
+						})
+						//this.panels[panel][index].put_data(layer)
+					}))
+					data.groups.forEach((layers, panel) => layers.forEach((group, index) => this.panels[panel][index].groupsel.value = group))
+					//this.layers.put_data(data.data)
+					//this.grp.put_data(data.data)
+					this.set_palette2(data.palette)
+					panelset(data.selectedpanel)
+					layerset(data.selected)
+					this.history.lock = false
+				})
 			},
 			(can_undo, can_redo)=>{
 				this.form.undo.disabled = !can_undo
@@ -912,6 +950,8 @@ class ChatDraw extends HTMLElement {
 		})
 		
 		Stroke.handle(c, ev=>{
+			if (this.history.lock)
+				return
 			if (ev.button)
 				return
 			if (this.play)

@@ -496,8 +496,9 @@ class Grp {
 		this.c2d.globalCompositeOperation = source.c2d.globalCompositeOperation
 	}
 	mirror_thumb() {
-		this.thumbc2d.putImageData(this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height), 0, 0)
-		this.panelc2d.putImageData(this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height), 0, 0)
+		let data = this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height)
+		this.thumbc2d.putImageData(data, 0, 0)
+		this.panelc2d.putImageData(data, 0, 0)
 	}
 	get_data() {
 		return this.c2d.getImageData(0, 0, this.canvas.width, this.canvas.height)
@@ -658,9 +659,10 @@ class Undo {
 	reset() {
 		this.states = []
 		this.pos = 0
+		this.lock = false
 		this.onchange(false, false)
 	}
-	add() {
+	async add() {
 		this.states.splice(this.pos, 9e9, this.get())
 		if (this.states.length <= this.max)
 			this.pos++
@@ -673,8 +675,9 @@ class Undo {
 	}
 	do(redo) {
 		// 0 1 2 [3] 4 5 - 3+ are redos
-		if (!this.can(redo))
+		if (!this.can(redo) || this.lock)
 			return
+		this.lock = true
 		if (!redo) this.pos--
 		const data = this.states[this.pos]
 		this.states[this.pos] = this.get(data.selected, data.selectedpanel)
