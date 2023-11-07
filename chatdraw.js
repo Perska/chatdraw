@@ -767,15 +767,6 @@ class ChatDraw extends HTMLElement {
 		this.form.focus.type = "checkbox"
 		this.form.play.type = "checkbox"
 		
-		document.body.onkeydown = (e) => {
-			if (e.ctrlKey && e.target == document.body) {
-				if (e.code == "KeyZ") {
-					this.form.undo.click()
-				} else if (e.code == "KeyY") {
-					this.form.redo.click()
-				}
-			}
-		}
 		
 		if (safari)
 			this.form.pick.onblur = this.form.pick.onfocus = ev=>{
@@ -938,6 +929,26 @@ class ChatDraw extends HTMLElement {
 			...ChatDraw.styles.map(x=>document.importNode(x, true)),
 			c, /*cc, ccc,*/ lp, this.form
 		)
+		
+		document.body.onkeydown = (e) => {
+			if (e.ctrlKey && e.target == document.body) {
+				if (e.code == "KeyZ") {
+					this.form.undo.click()
+				} else if (e.code == "KeyY") {
+					this.form.redo.click()
+				}
+			}
+		}
+		
+		this.form.onkeydown = e => {
+			if (e.ctrlKey) {
+				if (e.code == "KeyZ") {
+					this.form.undo.click()
+				} else if (e.code == "KeyY") {
+					this.form.redo.click()
+				}
+			}
+		}
 		
 		this.choose('tool', 0)
 		this.choose('brush', 1)
