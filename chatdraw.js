@@ -767,6 +767,16 @@ class ChatDraw extends HTMLElement {
 		this.form.focus.type = "checkbox"
 		this.form.play.type = "checkbox"
 		
+		document.body.onkeydown = (e) => {
+			if (e.ctrlKey && e.target == document.body) {
+				if (e.code == "KeyZ") {
+					this.form.undo.click()
+				} else if (e.code == "KeyY") {
+					this.form.redo.click()
+				}
+			}
+		}
+		
 		if (safari)
 			this.form.pick.onblur = this.form.pick.onfocus = ev=>{
 				if (picked)

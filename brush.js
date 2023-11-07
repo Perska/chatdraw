@@ -673,6 +673,8 @@ class Undo {
 	}
 	do(redo) {
 		// 0 1 2 [3] 4 5 - 3+ are redos
+		if (Stroke.pointers.size)
+			return
 		if (!this.can(redo))
 			return
 		if (!redo) this.pos--
