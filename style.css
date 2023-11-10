@@ -80,11 +80,36 @@
 	/*position: relative;*/
 }
 
-.layeropt > input {
+.layeropt > .layersetting {
 	position: absolute;
 	right: calc(var(--SC)*1px);
 	bottom: 0px;
+}
+
+.layeropt > input[type="checkbox"] {
+	width: 1em;
+	height: 1em;
+	margin: 0;
+}
+
+.layersetting > input[type="number"] {
 	appearance: textfield;
+}
+
+.layeropt > input {
+	position: absolute;
+	left: calc(var(--SC)*1px);
+	bottom: 0px;
+	font-size: calc(var(--width) * var(--SC) / 8 * 1px);
+	opacity: 0.1;
+}
+
+.layersetting > input {
+	position: relative;
+	/*position: absolute;
+	right: calc(var(--SC)*1px);
+	bottom: 0px;*/
+	/*appearance: textfield;*/
 	border: calc(var(--SC)*1px) #DDD solid;
 	font-size: calc(var(--width) * var(--SC) / 8 * 1px);
 	text-align: right;
@@ -95,6 +120,10 @@
 .thumbs:hover input, .thumbs input:focus {
 	/*visibility: visible;*/
 	opacity: 1;
+}
+
+.thumbs input:focus {
+	z-index: 1;
 }
 
 .lpcontainer > .panels {
@@ -141,7 +170,7 @@ canvas {
 	background: url(data:image/webp;base64,UklGRngAAABXRUJQVlA4TGwAAAAvEUAEAI9AmG00f8lD6escBAKJP+0GJxBI8kdZ8vmvwyo0wAyAgQMMFLSRpNwzk3+5OBIi+i82SeakQ0RpY50PMeVSWx9zPX/Xd/9+YNcf2PUHFoAewAagBjABOAF0AFYAFYARwAGgBbD8YQY=), #e4d8a9;/*repeating-linear-gradient(1.23deg, #F0E0AA, #D8D0A8 0.38291px);*/
 }
 canvas.hide {
-	opacity: 0;
+	opacity: 0 !important;
 }
 canvas.selected, .panel.selected {
 	border-color: black !important;

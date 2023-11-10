@@ -384,6 +384,7 @@ class ChatDraw extends HTMLElement {
 			this.panels.forEach((panel, index) => {
 				panel[0].panelcanvas.parentElement.classList.toggle("selected", this.activepanel == index)
 			})
+			reloadlayersettings()
 		}
 		
 		/// define button actions ///
@@ -433,6 +434,7 @@ class ChatDraw extends HTMLElement {
 				temp.c2d.resetTransform()
 				this.panels.forEach((panel, index) => {
 					panel.forEach(layer => {
+						temp.c2d.globalAlpha = layer.opacity.value / 100
 						temp.c2d.drawImage(layer.canvas, this.width * index, 0)
 					})
 				})
@@ -540,9 +542,12 @@ class ChatDraw extends HTMLElement {
 				lay.copy_settings_layer(this.grp)
 				lay.put_data(this.grp.get_data())
 				lay.groupsel.value = this.grp.groupsel.value
+				lay.opacity.value = this.grp.opacity.value
+				lay.visible.checked = this.grp.visible.checked
 				this.layers = [...this.layers, lay]
 				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
+				reloadlayersettings()
 				layerset(this.layers.length-1)
 			},
 			focus: ()=>{
@@ -573,6 +578,17 @@ class ChatDraw extends HTMLElement {
 				let group_b = this.layers[this.activelayer - 1].groupsel.value
 				this.layers[this.activelayer].groupsel.value = group_b
 				this.layers[this.activelayer - 1].groupsel.value = group_a
+				
+				let opacity_a = this.layers[this.activelayer].opacity.value
+				let opacity_b = this.layers[this.activelayer - 1].opacity.value
+				this.layers[this.activelayer].opacity.value = opacity_b
+				this.layers[this.activelayer - 1].opacity.value = opacity_a
+				
+				let visible_a = this.layers[this.activelayer].visible.checked
+				let visible_b = this.layers[this.activelayer - 1].visible.checked
+				this.layers[this.activelayer].visible.checked = visible_b
+				this.layers[this.activelayer - 1].visible.checked = visible_a
+				reloadlayersettings()
 				layerchange(-1)
 			},
 			shift: ()=>{
@@ -587,6 +603,17 @@ class ChatDraw extends HTMLElement {
 				let group_b = this.layers[this.activelayer + 1].groupsel.value
 				this.layers[this.activelayer].groupsel.value = group_b
 				this.layers[this.activelayer + 1].groupsel.value = group_a
+				
+				let opacity_a = this.layers[this.activelayer].opacity.value
+				let opacity_b = this.layers[this.activelayer + 1].opacity.value
+				this.layers[this.activelayer].opacity.value = opacity_b
+				this.layers[this.activelayer + 1].opacity.value = opacity_a
+				
+				let visible_a = this.layers[this.activelayer].visible.checked
+				let visible_b = this.layers[this.activelayer + 1].visible.checked
+				this.layers[this.activelayer].visible.checked = visible_b
+				this.layers[this.activelayer + 1].visible.checked = visible_a
+				reloadlayersettings()
 				layerchange(1)
 			},
 			selectup: ()=>{
@@ -636,6 +663,8 @@ class ChatDraw extends HTMLElement {
 					lay.copy_settings_layer(this.grp)
 					lay.put_data(layer.get_data())
 					lay.groupsel.value = layer.groupsel.value
+					lay.opacity.value = layer.opacity.value
+					lay.visible.checked = layer.visible.checked
 					return lay
 				})
 				this.panels = [...this.panels, lays]
@@ -782,6 +811,8 @@ class ChatDraw extends HTMLElement {
 				//data: this.layers.map(layer => layer.get_data()),
 				data: this.panels.map(panel => panel.map(layer => layer.get_data())),
 				groups: this.panels.map(panel => panel.map(layer => layer.groupsel.value)),
+				alpha: this.panels.map(panel => panel.map(layer => layer.opacity.value)),
+				visibles: this.panels.map(panel => panel.map(layer => layer.visible.checked)),
 				//data: this.grp.get_data(),
 				palette: this.choices.color.values.slice(0, this.palsize),
 				layers: this.layers,
@@ -804,11 +835,14 @@ class ChatDraw extends HTMLElement {
 				//data.data.forEach((layer, index) => this.panels[data.selectedpanel][index].put_data(layer))
 				data.data.forEach((layers, panel) => layers.forEach((layer, index) => this.panels[panel][index].put_data(layer)))
 				data.groups.forEach((layers, panel) => layers.forEach((group, index) => this.panels[panel][index].groupsel.value = group))
+				data.alpha.forEach((layers, panel) => layers.forEach((alpha, index) => this.panels[panel][index].opacity.value = alpha))
+				data.visibles.forEach((layers, panel) => layers.forEach((visible, index) => this.panels[panel][index].visible.value = visible))
 				//this.layers.put_data(data.data)
 				//this.grp.put_data(data.data)
 				this.set_palette2(data.palette)
 				panelset(data.selectedpanel)
 				layerset(data.selected)
+				reloadlayersettings()
 			},
 			(can_undo, can_redo)=>{
 				this.form.undo.disabled = !can_undo
@@ -849,10 +883,31 @@ class ChatDraw extends HTMLElement {
 		lp.style.setProperty('--height', this.height/4)
 		//lp.style.textAlign = "center"
 		
+		const opacitychange = (e) => {
+			e.target.parentElement.parentElement._layer.canvas.style.setProperty('opacity', e.target.value + "%")
+		}
+		
+		const visibilitychange = (e) => {
+			e.target.parentElement._layer.canvas.style.setProperty('visibility', e.target.checked ? 'visible' : 'hidden')
+		}
+		
+		const reloadlayersettings = () => {
+			this.layers.forEach((layer, index) => {
+				layer.canvas.style.setProperty('opacity', layer.opacity.value + "%")
+				layer.canvas.style.setProperty('visibility', layer.visible.checked ? 'visible' : 'hidden')
+			})
+		}
+		
 		let layeropts = (layer) => {
 			let box = document.createElement('div')
 			box.className = "layeropt"
-			box.append(layer.thumbcanvas, layer.groupsel)
+			box._layer = layer
+			let sets = document.createElement('div')
+			sets.className = "layersetting"
+			sets.append(layer.opacity, layer.groupsel)
+			box.append(layer.thumbcanvas, layer.visible, sets)
+			layer.opacity.onchange = opacitychange
+			layer.visible.onchange = visibilitychange
 			return box
 		}
 		
@@ -890,6 +945,8 @@ class ChatDraw extends HTMLElement {
 				for(let i=this.activepanel-1; i>=Math.max(0,this.activepanel-this.trace); i--) {
 					temp.erase()
 					for (let j=0;j<this.panels[i].length;j++) {
+						if (!this.panels[i][j].visible.checked) continue
+						temp.c2d.globalAlpha = this.panels[i][j].opacity.value / 100
 						temp.c2d.drawImage(this.panels[i][j].canvas, 0, 0, this.width, this.height)
 					}
 					vis *= .7

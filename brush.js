@@ -419,6 +419,8 @@ class Grp {
 	inverted = false
 	
 	groupsel = null
+	opacity = null
+	visible = null
 	
 	constructor(width, height) {
 		Object.seal(this)
@@ -441,6 +443,21 @@ class Grp {
 		sel.value = 0
 		sel.min = 0
 		sel.max = 255
+		sel.title = "layer link group"
+		
+		const alpha = this.opacity = document.createElement('input')
+		alpha.type = "number"
+		alpha.size = 2
+		alpha.value = 100
+		alpha.min = 0
+		alpha.max = 100
+		alpha.step = 5
+		alpha.title = "layer opacity"
+		
+		const show = this.visible = document.createElement('input')
+		show.type = "checkbox"
+		show.checked = true
+		show.title = "layer visibility"
 		
 		const c = this.c2d = this.canvas.getContext('2d')
 		c.imageSmoothingEnabled = false
