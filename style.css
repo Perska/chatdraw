@@ -33,6 +33,7 @@
 }
 :host > .canvas > * {
 	pointer-events: none;
+	mask-size: 100%;
 }
 .canvas.small > * {
 	image-rendering: unset;

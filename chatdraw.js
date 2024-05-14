@@ -189,6 +189,7 @@ class ChatDraw extends HTMLElement {
 		Object.seal(this)
 		
 		this.grp.canvas.classList.add('main')
+		this.grp.canvas.id = "layer1"
 		this.grp.thumbcanvas.classList.add('selected')
 		this.overlay.canvas.classList.add('overlay')
 		/// define brushes ///
@@ -429,15 +430,28 @@ class ChatDraw extends HTMLElement {
 			},
 			saveall: ()=>{
 				let temp = new Grp(this.width * this.panels.length, this.height)
+				let mask = new Grp(this.width, this.height)
 				temp.c2d.globalCompositeOperation = 'source-over'
 				//temp.c2d.fillStyle = '#FFFFFF'
 				temp.c2d.resetTransform()
+				mask.c2d.resetTransform()
 				this.panels.forEach((panel, index) => {
 					panel.forEach(layer => {
+						//mask.c2d.clearRect()
+						mask.c2d.globalCompositeOperation = 'copy'
+						let mid = Number(layer.masksel.value)
+						if (0 < mid && mid <= panel.length) {
+							mask.c2d.drawImage(panel[mid - 1].canvas, 0, 0)
+							mask.c2d.globalCompositeOperation = 'source-in'
+						}
+						mask.c2d.drawImage(layer.canvas, 0, 0)
 						temp.c2d.globalAlpha = layer.opacity.value / 100
-						temp.c2d.drawImage(layer.canvas, this.width * index, 0)
+						temp.c2d.drawImage(mask.canvas, this.width * index, 0)
 					})
 				})
+				temp.c2d.globalAlpha = 1
+				temp.c2d.fillStyle = '#00FFFFFF'
+				temp.c2d.fillRect(0, 0, this.width * this.panels.length, 0)
 				/*this.layers.forEach(layer => {
 					temp.c2d.drawImage(layer.canvas, 0, 0)
 				})*/
@@ -490,15 +504,16 @@ class ChatDraw extends HTMLElement {
 					img.src = url
 					await img.decode()
 					this.history.add()
-					let panels = img.width / this.width | 0 | 1
-					let max = (img.height / this.height) | 0 | 1
+					let panels = Math.max((img.width / this.width) | 0, 1)
+					let max = Math.max((img.height / this.height) | 0, 1)
 					this.panels = []
 					for (let j=0;j<panels;j++) {
 						this.layers = []
 						//temp.c2d.drawImage(img, 0, 0, 1, 1)
 						temp.c2d.drawImage(img, this.width * j, this.height * max, 1, 1, 0, 0, 1, 1)
 						let data = temp.c2d.getImageData(0,0,1,1)
-						let layers = data.data[0] | max
+						let layers = data.data[0]
+						if (!layers) layers = max
 						while (this.layers.length<layers) {
 							this.layers.push(new Grp(this.width, this.height))
 						}
@@ -523,6 +538,7 @@ class ChatDraw extends HTMLElement {
 				this.history.add()
 				let lay = new Grp(this.width, this.height)
 				lay.copy_settings_layer(this.grp)
+				//lay.id = "layer" + (this.layers.length + 1)
 				this.layers = [...this.layers, lay]
 				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
@@ -544,6 +560,7 @@ class ChatDraw extends HTMLElement {
 				lay.groupsel.value = this.grp.groupsel.value
 				lay.opacity.value = this.grp.opacity.value
 				lay.visible.checked = this.grp.visible.checked
+				lay.masksel.value = this.grp.masksel.value
 				this.layers = [...this.layers, lay]
 				this.panels = dupe(this.panels, this.activepanel, this.layers)
 				reloadlayers()
@@ -588,6 +605,12 @@ class ChatDraw extends HTMLElement {
 				let visible_b = this.layers[this.activelayer - 1].visible.checked
 				this.layers[this.activelayer].visible.checked = visible_b
 				this.layers[this.activelayer - 1].visible.checked = visible_a
+				
+				// To-do: make it so the layer id gets updated. is this feasible?
+				let mask_a = this.layers[this.activelayer].masksel.value
+				let mask_b = this.layers[this.activelayer - 1].masksel.value
+				this.layers[this.activelayer].masksel.value = mask_b
+				this.layers[this.activelayer - 1].masksel.value = mask_a
 				reloadlayersettings()
 				layerchange(-1)
 			},
@@ -613,6 +636,11 @@ class ChatDraw extends HTMLElement {
 				let visible_b = this.layers[this.activelayer + 1].visible.checked
 				this.layers[this.activelayer].visible.checked = visible_b
 				this.layers[this.activelayer + 1].visible.checked = visible_a
+				
+				let mask_a = this.layers[this.activelayer].masksel.value
+				let mask_b = this.layers[this.activelayer + 1].masksel.value
+				this.layers[this.activelayer].masksel.value = mask_b
+				this.layers[this.activelayer + 1].masksel.value = mask_a
 				reloadlayersettings()
 				layerchange(1)
 			},
@@ -665,6 +693,7 @@ class ChatDraw extends HTMLElement {
 					lay.groupsel.value = layer.groupsel.value
 					lay.opacity.value = layer.opacity.value
 					lay.visible.checked = layer.visible.checked
+					lay.masksel.value = layer.masksel.value
 					return lay
 				})
 				this.panels = [...this.panels, lays]
@@ -813,6 +842,7 @@ class ChatDraw extends HTMLElement {
 				groups: this.panels.map(panel => panel.map(layer => layer.groupsel.value)),
 				alpha: this.panels.map(panel => panel.map(layer => layer.opacity.value)),
 				visibles: this.panels.map(panel => panel.map(layer => layer.visible.checked)),
+				masks: this.panels.map(panel => panel.map(layer => layer.masksel.value)),
 				//data: this.grp.get_data(),
 				palette: this.choices.color.values.slice(0, this.palsize),
 				layers: this.layers,
@@ -837,6 +867,7 @@ class ChatDraw extends HTMLElement {
 				data.groups.forEach((layers, panel) => layers.forEach((group, index) => this.panels[panel][index].groupsel.value = group))
 				data.alpha.forEach((layers, panel) => layers.forEach((alpha, index) => this.panels[panel][index].opacity.value = alpha))
 				data.visibles.forEach((layers, panel) => layers.forEach((visible, index) => this.panels[panel][index].visible.value = visible))
+				data.masks.forEach((layers, panel) => layers.forEach((mask, index) => this.panels[panel][index].masksel.value = mask))
 				//this.layers.put_data(data.data)
 				//this.grp.put_data(data.data)
 				this.set_palette2(data.palette)
@@ -884,17 +915,26 @@ class ChatDraw extends HTMLElement {
 		//lp.style.textAlign = "center"
 		
 		const opacitychange = (e) => {
-			e.target.parentElement.parentElement._layer.canvas.style.setProperty('opacity', e.target.value + "%")
+			//e.target.parentElement.parentElement._layer.canvas.style.setProperty('opacity', e.target.value + "%")
+			e.target.parentElement.parentElement._layer.canvas.style.setProperty('filter', "opacity(" + e.target.value + "%)")
 		}
 		
 		const visibilitychange = (e) => {
 			e.target.parentElement._layer.canvas.style.setProperty('visibility', e.target.checked ? 'visible' : 'hidden')
 		}
 		
+		const maskchange = (e) => {
+			e.target.parentElement.parentElement._layer.canvas.style.setProperty('mask-image', Number(e.target.value) ? `-moz-element(#layer${e.target.value})` : "unset")
+		}
+		
 		const reloadlayersettings = () => {
 			this.layers.forEach((layer, index) => {
-				layer.canvas.style.setProperty('opacity', layer.opacity.value + "%")
+				//layer.canvas.id = "layer" + index
+				//layer.canvas.style.setProperty('opacity', layer.opacity.value + "%")
+				layer.canvas.style.setProperty('filter', "opacity(" + layer.opacity.value + "%)")
 				layer.canvas.style.setProperty('visibility', layer.visible.checked ? 'visible' : 'hidden')
+				layer.canvas.style.setProperty('mask-image', Number(layer.masksel.value) ? `-moz-element(#layer${layer.masksel.value})` : "unset")
+				//layer.canvas.style.setProperty('mask-image', index ? `-moz-element(#layer${index-1})` : "unset")
 			})
 		}
 		
@@ -904,10 +944,11 @@ class ChatDraw extends HTMLElement {
 			box._layer = layer
 			let sets = document.createElement('div')
 			sets.className = "layersetting"
-			sets.append(layer.opacity, layer.groupsel)
+			sets.append(layer.opacity, layer.groupsel, layer.masksel)
 			box.append(layer.thumbcanvas, layer.visible, sets)
 			layer.opacity.onchange = opacitychange
 			layer.visible.onchange = visibilitychange
+			layer.masksel.onchange = maskchange
 			return box
 		}
 		
@@ -927,7 +968,7 @@ class ChatDraw extends HTMLElement {
 			c.textContent = ""
 			cc.textContent = ""
 			ccc.textContent = ""
-			c.append(this.traced.canvas, ...this.layers.map(layer => layer.canvas), this.overlay.canvas)
+			c.append(this.traced.canvas, ...this.layers.map((layer,index) => (layer.canvas.id = "layer" + (index + 1),layer.canvas)), this.overlay.canvas)
 			cc.append(...this.layers.map(layer => layeropts(layer)))
 			ccc.append(...this.panels.map(panel => containerize(panel.map(layer => layer.panelcanvas))))
 		}
@@ -990,7 +1031,12 @@ class ChatDraw extends HTMLElement {
 		document.body.onkeydown = (e) => {
 			if (e.ctrlKey && e.target == document.body) {
 				if (e.code == "KeyZ") {
-					this.form.undo.click()
+					if (!e.shiftKey) {
+						this.form.undo.click()
+					}
+					else {
+						this.form.redo.click()
+					}
 				} else if (e.code == "KeyY") {
 					this.form.redo.click()
 				}
@@ -1000,7 +1046,12 @@ class ChatDraw extends HTMLElement {
 		this.form.onkeydown = e => {
 			if (e.ctrlKey) {
 				if (e.code == "KeyZ") {
-					this.form.undo.click()
+					if (!e.shiftKey) {
+						this.form.undo.click()
+					}
+					else {
+						this.form.redo.click()
+					}
 				} else if (e.code == "KeyY") {
 					this.form.redo.click()
 				}

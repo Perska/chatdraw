@@ -421,6 +421,7 @@ class Grp {
 	groupsel = null
 	opacity = null
 	visible = null
+	masksel = null
 	
 	constructor(width, height) {
 		Object.seal(this)
@@ -458,6 +459,14 @@ class Grp {
 		show.type = "checkbox"
 		show.checked = true
 		show.title = "layer visibility"
+		
+		const mask = this.masksel = document.createElement('input')
+		mask.type = "number"
+		mask.size = 1
+		mask.value = 0
+		mask.min = 0
+		//mask.max = 99
+		mask.title = "layer to use as mask (limited functinality outside firefox)"
 		
 		const c = this.c2d = this.canvas.getContext('2d')
 		c.imageSmoothingEnabled = false
