@@ -917,14 +917,17 @@ class ChatDraw extends HTMLElement {
 		const opacitychange = (e) => {
 			//e.target.parentElement.parentElement._layer.canvas.style.setProperty('opacity', e.target.value + "%")
 			e.target.parentElement.parentElement._layer.canvas.style.setProperty('filter', "opacity(" + e.target.value + "%)")
+			e.target.parentElement.parentElement._layer.panelcanvas.style.setProperty('filter', "opacity(" + e.target.value + "%)")
 		}
 		
 		const visibilitychange = (e) => {
 			e.target.parentElement._layer.canvas.style.setProperty('visibility', e.target.checked ? 'visible' : 'hidden')
+			e.target.parentElement._layer.panelcanvas.style.setProperty('visibility', e.target.checked ? 'visible' : 'hidden')
 		}
 		
 		const maskchange = (e) => {
 			e.target.parentElement.parentElement._layer.canvas.style.setProperty('mask-image', Number(e.target.value) ? `-moz-element(#layer${e.target.value})` : "unset")
+			e.target.parentElement.parentElement._layer.panelcanvas.style.setProperty('mask-image', Number(e.target.value) ? `-moz-element(#layer${e.target.value})` : "unset")
 		}
 		
 		const reloadlayersettings = () => {
@@ -934,6 +937,10 @@ class ChatDraw extends HTMLElement {
 				layer.canvas.style.setProperty('filter', "opacity(" + layer.opacity.value + "%)")
 				layer.canvas.style.setProperty('visibility', layer.visible.checked ? 'visible' : 'hidden')
 				layer.canvas.style.setProperty('mask-image', Number(layer.masksel.value) ? `-moz-element(#layer${layer.masksel.value})` : "unset")
+				
+				layer.panelcanvas.style.setProperty('filter', "opacity(" + layer.opacity.value + "%)")
+				layer.panelcanvas.style.setProperty('visibility', layer.visible.checked ? 'visible' : 'hidden')
+				layer.panelcanvas.style.setProperty('mask-image', Number(layer.masksel.value) ? `-moz-element(#layer${layer.masksel.value})` : "unset")
 				//layer.canvas.style.setProperty('mask-image', index ? `-moz-element(#layer${index-1})` : "unset")
 			})
 		}
