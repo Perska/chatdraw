@@ -26,6 +26,9 @@
 	chat-draw.centered {
 		align-self: center;
 	}
+	chat-draw.spancontrols {
+		grid-template: "canvas layers" "controls layers";
+	}
 	textarea {
 		height: 1em;
 	}
@@ -42,8 +45,15 @@
 <form method=dialog>
 	<label>UI Scale: <input name=scale type=number min=1 max=10 value=4 id=$scale size=3 onchange="chatdraw.set_scale(value/devicePixelRatio)"></label>
 	<label>Canvas Scale: <input name=scalecanvas type=number min=0.5 max=10 value=4 id=$scalecanvas size=4 step=0.5 onchange="chatdraw.set_scalecanvas(value/devicePixelRatio)"></label>
-	<label>Center chatdraw: <input name=center type=checkbox checked=true id=$center onchange="chatdraw.centering(checked)"></label>
+	<label>Center chatdraw: <input name=center type=checkbox checked=true id=$center onchange="chatdraw.centering(checked)"></label>|
+	<label>Pin controls on screen: <input name=pin type=checkbox checked=true id=$pincontrols onchange="chatdraw.pincontrols(checked)"></label>|
+	<label>Align controls with canvas: <input name=span type=checkbox checked=true id=$spancontrols onchange="chatdraw.spancontrols(checked)"></label>|
 	<label>X Offset: <input name=offset type=number value=0 id=$offset step=20 size=6 onchange="chatdraw.set_offset(value)"></label>
+	<br>
+	<label>Chatdraw URL: <input type="text" size=40 id=$url></textarea></label>
+	<label>Width: <input type=number min=1 id=$width size=4 onchange="updateurl()"></label>
+	<label>Height: <input type=number min=1 id=$height size=4 onchange="updateurl()"></label>
+	<label>Colors: <input type=number min=2 max=16 size=2 id=$colors onchange="updateurl()"></label>
 	<br>
 	<label>testing:<textarea id=$code></textarea></label>
 	<input type="button" onclick="$log.textContent='...';$log.textContent=String(eval($code.value))" value="run">
@@ -62,10 +72,21 @@
 	
 	let $stroke = window.$stroke
 	
+	function updateurl() {
+		$url.value = `${location.protocol}//${location.host}${location.pathname}?${$width.value||200}x${$height.value||100}c${$colors.value||6}`
+	}
 	let chatdraw = document.querySelector('chat-draw')
-	$scale.onchange()
-	$scalecanvas.onchange()
-	$center.onchange()
-	$offset.onchange()
+	setTimeout(() => {
+		$scale.onchange()
+		$scalecanvas.onchange()
+		$center.onchange()
+		$offset.onchange()
+		$pincontrols.onchange()
+		$spancontrols.onchange()
+		$width.value = chatdraw.width
+		$height.value = chatdraw.height
+		$colors.value = chatdraw.palsize
+		updateurl()
+	},1)
 	window.onbeforeunload = () => true
 </script>

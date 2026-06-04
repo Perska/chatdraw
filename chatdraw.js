@@ -1115,6 +1115,14 @@ class ChatDraw extends HTMLElement {
 	centering(checked) {
 		this.classList.toggle("centered", checked)
 	}
+
+	pincontrols(checked) {
+		this.classList.toggle("pincontrols", checked)
+	}
+
+	spancontrols(checked) {
+		this.classList.toggle("spancontrols", checked)
+	}
 	// todo: allow passing a more useful value here
 	choose(name, value) {
 		const elem = this.form.querySelector(`input[name="${name}"][value="${value}"]`)

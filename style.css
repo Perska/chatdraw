@@ -235,7 +235,11 @@ hr { /* todo this sucks */
 	all: unset;
 	width: 1px;
 }
-
+:host(.pincontrols) form {
+	position: sticky;
+	bottom: 0;
+	background: #B0B098;
+}
 /* button container */
 chatdraw-button {
 	margin-bottom: calc(var(--gap)*var(--S));
@@ -279,7 +283,7 @@ button {
 		0 calc(var(--S)*2px) calc(var(--S)*1px) #000, /* shadow */
 		var(--recess);
 }
-:active + button {
+:active + button, :active:checked[type=checkbox] + button {
 	transform: translateY(calc(var(--S)*1px));
 	box-shadow:
 		var(--recess);
